@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>宝贝课时记 - 培训班打卡管理</title>
+
+    <script>
+        window.tailwind = window.tailwind || {};
+        window.tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366F1',
+                        secondary: '#EC4899',
+                        'soft-blue': '#DBEAFE',
+                        success: '#10B981',
+                        warning: '#F59E0B',
+                        danger: '#EF4444'
+                    }
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 4px 20px rgba(99, 102, 241, 0.08);
+            }
+            .btn-press {
+                transition: all 0.15s ease;
+            }
+            .btn-press:active {
+                transform: scale(0.96);
+            }
+            .safe-bottom {
+                padding-bottom: calc(env(safe-area-inset-bottom) + 80px);
+            }
+        }
+    </style>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #fce7f3 100%);
+            min-height: 100vh;
+        }
+        .tab-active {
+            color: #6366F1;
+        }
+        .tab-active svg {
+            stroke: #6366F1;
+            fill: rgba(99, 102, 241, 0.1);
+        }
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+            background: rgba(0,0,0,0.3);
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+        }
+        .pulse-ring {
+            animation: pulse-ring 2s infinite;
+        }
+        .progress-bar {
+            transition: width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        input[type="checkbox"] {
+            accent-color: #6366F1;
+        }
+        .toast {
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 2s forwards;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+        .weekday-chip.active {
+            background: #6366F1;
+            color: white;
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-800">
+    <div id="app" class="max-w-md mx-auto min-h-screen relative safe-bottom">
+        <!-- 头部 -->
+        <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-lg border-b border-gray-100 px-4 py-3">
+            <div class="flex items-center justify-between">
+                <h1 class="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                    📚 宝贝课时记
+                </h1>
+                <div class="flex items-center gap-2">
+                    <button id="exportBtn" class="p-2 rounded-full hover:bg-gray-100 btn-press" title="导出数据">
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                    </button>
+                    <button id="importBtn" class="p-2 rounded-full hover:bg-gray-100 btn-press" title="导入数据">
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main id="mainContent" class="px-4 py-4">
+            <!-- 概览卡片 -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-white rounded-2xl p-4 card-shadow">
+                    <p class="text-sm text-gray-500 mb-1">总课时</p>
+                    <p class="text-2xl font-bold text-primary" id="totalLessons">0</p>
+                    <p class="text-xs text-gray-400 mt-1">已上 <span id="totalCompleted">0</span> / 剩余 <span id="totalRemaining">0</span></p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 card-shadow">
+                    <p class="text-sm text-gray-500 mb-1">本月打卡</p>
+                    <p class="text-2xl font-bold text-secondary" id="monthCheckins">0</p>
+                    <p class="text-xs text-gray-400 mt-1">请假 <span id="monthLeaves">0</span> 次</p>
+                </div>
+            </div>
+
+            <!-- 本周课程提醒 -->
+            <div id="upcomingSection" class="mb-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="font-bold text-gray-700 flex items-center gap-2">
+                        <span class="text-lg">⏰</span> 本周课程提醒
+                    </h2>
+                    <span class="text-xs text-gray-400" id="upcomingCount"></span>
+                </div>
+                <div id="upcomingList" class="space-y-2">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 孩子切换标签 -->
+            <div class="mb-4 overflow-x-auto pb-2 -mx-4 px-4" id="childTabs">
+                <div class="flex gap-2" id="childTabList">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 培训班列表 -->
+            <div id="courseList" class="space-y-4">
+                <!-- 动态生成 -->
+                <div class="text-center py-12 text-gray-400" id="emptyState">
+                    <div class="text-5xl mb-3">🎨</div>
+                    <p>还没有添加培训班</p>
+                    <p class="text-sm mt-1">点击下方按钮开始记录吧</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部导航栏 -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-40">
+            <div class="max-w-md mx-auto flex justify-around items-center py-2">
+                <button class="nav-btn flex flex-col items-center p-2 tab-active" data-tab="home">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                    <span class="text-xs">首页</span>
+                </button>
+                <button class="nav-btn flex flex-col items-center p-2 text-gray-400" data-tab="schedule">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="text-xs">课表</span>
+                </button>
+                <button id="addBtn" aria-label="添加" class="relative -top-5 bg-gradient-to-r from-primary to-secondary rounded-full w-14 h-14 flex items-center justify-center text-white shadow-lg btn-press">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
+                <button class="nav-btn flex flex-col items-center p-2 text-gray-400" data-tab="children">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <span class="text-xs">孩子</span>
+                </button>
+                <button class="nav-btn flex flex-col items-center p-2 text-gray-400" data-tab="history">
+                    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="text-xs">记录</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- 添加/编辑课程模态框 -->
+        <div id="courseModal" class="fixed inset-0 z-50 hidden">
+            <div class="modal-backdrop absolute inset-0" id="courseModalBackdrop"></div>
+            <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-5 animate-slide-up max-h-[92vh] overflow-y-auto">
+                <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-5"></div>
+                <h3 class="text-lg font-bold mb-4" id="courseModalTitle">添加培训班</h3>
+                <form id="courseForm" class="space-y-4">
+                    <input type="hidden" id="courseId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">课程名称</label>
+                        <input type="text" id="courseName" placeholder="如：钢琴、英语、绘画..." class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">所属孩子</label>
+                        <select id="courseChild" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" required>
+                            <!-- 动态生成 -->
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">购买总课时</label>
+                            <input type="number" id="totalHours" min="1" placeholder="如：48" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">每次消耗课时</label>
+                            <input type="number" id="hoursPerClass" min="0.5" step="0.5" value="1" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" required>
+                        </div>
+                    </div>
+
+                    <!-- 固定上课时间 -->
+                    <div class="bg-soft-blue/50 rounded-xl p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <p class="font-medium text-gray-700">📅 固定上课时间</p>
+                                <p class="text-xs text-gray-500">设置后将自动在首页提醒</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="hasSchedule" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                            </label>
+                        </div>
+                        <div id="scheduleSettings" class="hidden space-y-3">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-2">上课星期（可多选）</label>
+                                <div class="flex gap-1 justify-between" id="weekdayPicker">
+                                    <button type="button" class="weekday-chip w-9 h-9 rounded-full bg-gray-100 text-sm font-medium text-gray-600 transition" data-day="0">日</button>
+                                    <button type="button" class="weekday-chip w-9 h-9 rounded-full bg-gray-100 text-sm font-medium text-gray-600 transition" data-day="1">一</button>
+                                    <button type="button" class="weekday-chip w-9 h-9 rounded-full bg-gray-100 text-sm font-medium text-gray-600 transition" data-day="2">二</button>
+                                    <button type="button" class="weekday-chip w-9 h-9 rounded-full bg-gray-100 text-sm font-medium text-gray-600 transition" data-day="3">三</button>
+                                    <button type="button" class="weekday-chip w-9 h-9 rounded-full bg-gray-100 text-sm font-medium text-gray-600 transition" data-day="4">四</button>
+                                    <button type="button" class="weekday-chip w-9 h-9 rounded-full bg-gray-100 text-sm font-medium text-gray-600 transition" data-day="5">五</button>
+                                    <button type="button" class="weekday-chip w-9 h-9 rounded-full bg-gray-100 text-sm font-medium text-gray-600 transition" data-day="6">六</button>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">开始时间</label>
+                                    <input type="time" id="startTime" class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-primary outline-none text-sm" value="09:00">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-500 mb-1">结束时间</label>
+                                    <input type="time" id="endTime" class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-primary outline-none text-sm" value="10:30">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">上课地点（可选）</label>
+                                <input type="text" id="courseLocation" placeholder="如：少年宫302教室" class="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-primary outline-none text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">课程颜色</label>
+                        <div class="flex gap-2 flex-wrap" id="colorPicker">
+                            <button type="button" class="w-9 h-9 rounded-full bg-primary ring-2 ring-offset-2 ring-primary" data-color="#6366F1"></button>
+                            <button type="button" class="w-9 h-9 rounded-full bg-secondary" data-color="#EC4899"></button>
+                            <button type="button" class="w-9 h-9 rounded-full bg-success" data-color="#10B981"></button>
+                            <button type="button" class="w-9 h-9 rounded-full bg-warning" data-color="#F59E0B"></button>
+                            <button type="button" class="w-9 h-9 rounded-full bg-danger" data-color="#EF4444"></button>
+                            <button type="button" class="w-9 h-9 rounded-full bg-purple-500" data-color="#A855F7"></button>
+                            <button type="button" class="w-9 h-9 rounded-full bg-cyan-500" data-color="#06B6D4"></button>
+                            <button type="button" class="w-9 h-9 rounded-full bg-orange-500" data-color="#F97316"></button>
+                        </div>
+                        <input type="hidden" id="courseColor" value="#6366F1">
+                    </div>
+                    <div class="flex items-center justify-between py-2">
+                        <div>
+                            <p class="font-medium text-gray-700">允许兄弟姐妹共享课时</p>
+                            <p class="text-xs text-gray-400">开启后其他孩子也可以使用本课程剩余课时</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="isShared" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+                    <div id="sharedWithContainer" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">可共享给</label>
+                        <div id="sharedWithList" class="space-y-2">
+                            <!-- 动态生成 -->
+                        </div>
+                    </div>
+                    <div class="pt-2 flex gap-3">
+                        <button type="button" id="deleteCourseBtn" class="hidden flex-1 py-3 px-4 rounded-xl border border-danger text-danger font-medium btn-press">删除课程</button>
+                        <button type="submit" class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-medium btn-press">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 添加孩子模态框 -->
+        <div id="childModal" class="fixed inset-0 z-50 hidden">
+            <div class="modal-backdrop absolute inset-0" id="childModalBackdrop"></div>
+            <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-5 animate-slide-up">
+                <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-5"></div>
+                <h3 class="text-lg font-bold mb-4" id="childModalTitle">添加孩子</h3>
+                <form id="childForm" class="space-y-4">
+                    <input type="hidden" id="childId">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">孩子姓名/昵称</label>
+                        <input type="text" id="childName" placeholder="如：大宝、二宝、小明..." class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">头像表情</label>
+                        <div class="flex gap-2 flex-wrap" id="avatarPicker">
+                            <button type="button" class="w-11 h-11 rounded-full bg-blue-50 text-xl flex items-center justify-center ring-2 ring-offset-2 ring-primary" data-avatar="👦">👦</button>
+                            <button type="button" class="w-11 h-11 rounded-full bg-pink-50 text-xl flex items-center justify-center" data-avatar="👧">👧</button>
+                            <button type="button" class="w-11 h-11 rounded-full bg-yellow-50 text-xl flex items-center justify-center" data-avatar="🧒">🧒</button>
+                            <button type="button" class="w-11 h-11 rounded-full bg-green-50 text-xl flex items-center justify-center" data-avatar="👶">👶</button>
+                            <button type="button" class="w-11 h-11 rounded-full bg-purple-50 text-xl flex items-center justify-center" data-avatar="🐻">🐻</button>
+                            <button type="button" class="w-11 h-11 rounded-full bg-cyan-50 text-xl flex items-center justify-center" data-avatar="🐰">🐰</button>
+                        </div>
+                        <input type="hidden" id="childAvatar" value="👦">
+                    </div>
+                    <div class="pt-2 flex gap-3">
+                        <button type="button" id="deleteChildBtn" class="hidden flex-1 py-3 px-4 rounded-xl border border-danger text-danger font-medium btn-press">删除</button>
+                        <button type="submit" class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-medium btn-press">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 打卡模态框 -->
+        <div id="checkinModal" class="fixed inset-0 z-50 hidden">
+            <div class="modal-backdrop absolute inset-0" id="checkinModalBackdrop"></div>
+            <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-5 animate-slide-up">
+                <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-5"></div>
+                <h3 class="text-lg font-bold mb-4">记录课时</h3>
+                <form id="checkinForm" class="space-y-4">
+                    <input type="hidden" id="checkinCourseId">
+                    <input type="hidden" id="checkinRecordId">
+                    <div class="bg-gray-50 rounded-xl p-4 mb-4">
+                        <p class="font-medium" id="checkinCourseName">钢琴课</p>
+                        <p class="text-sm text-gray-500 mt-1" id="checkinCourseInfo">已上 12 / 48 课时</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">记录类型</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="recordType" value="attend" class="sr-only peer" checked>
+                                <div class="p-4 rounded-xl border-2 border-gray-200 peer-checked:border-success peer-checked:bg-green-50 text-center transition">
+                                    <div class="text-2xl mb-1">✅</div>
+                                    <p class="font-medium text-success">正常上课</p>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="recordType" value="leave" class="sr-only peer">
+                                <div class="p-4 rounded-xl border-2 border-gray-200 peer-checked:border-warning peer-checked:bg-yellow-50 text-center transition">
+                                    <div class="text-2xl mb-1">🤒</div>
+                                    <p class="font-medium text-warning">请假</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="attendOptions">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">消耗课时</label>
+                        <input type="number" id="checkinHours" min="0" step="0.5" value="1" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition">
+                        <p class="text-xs text-gray-400 mt-1">请假通常不消耗课时，可根据实际情况调整</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">上课日期</label>
+                        <input type="date" id="checkinDate" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">备注（可选）</label>
+                        <textarea id="checkinNote" rows="2" placeholder="如：今天学习了小奏鸣曲..." class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition resize-none"></textarea>
+                    </div>
+                    <div class="pt-2 flex gap-3">
+                        <button type="button" id="deleteRecordBtn" class="hidden flex-1 py-3 px-4 rounded-xl border border-danger text-danger font-medium btn-press">删除记录</button>
+                        <button type="submit" class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-primary to-secondary text-white font-medium btn-press">确认记录</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 历史记录页面 -->
+        <div id="historyPage" class="hidden px-4 py-4">
+            <h2 class="text-lg font-bold mb-4">打卡记录</h2>
+            <div id="historyList" class="space-y-3">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+
+        <!-- 周课表页面 -->
+        <div id="schedulePage" class="hidden px-4 py-4">
+            <h2 class="text-lg font-bold mb-4">本周课表</h2>
+            <div id="weekSchedule" class="space-y-4">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+
+        <!-- 孩子管理页面 -->
+        <div id="childrenPage" class="hidden px-4 py-4">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold">孩子管理</h2>
+                <button id="addChildBtn" class="text-primary font-medium text-sm flex items-center gap-1 btn-press">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    添加孩子
+                </button>
+            </div>
+            <div id="childList" class="space-y-3">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+
+        <!-- 课程详情模态框 -->
+        <div id="courseDetailModal" class="fixed inset-0 z-50 hidden">
+            <div class="modal-backdrop absolute inset-0" id="courseDetailBackdrop"></div>
+            <div class="absolute inset-0 bg-white animate-fade-in overflow-y-auto">
+                <div class="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-gray-100 px-4 py-3 flex items-center">
+                    <button id="closeCourseDetail" class="p-2 -ml-2 rounded-full hover:bg-gray-100 btn-press">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <h3 class="text-lg font-bold ml-2" id="detailTitle">课程详情</h3>
+                    <button id="editCourseBtn" class="ml-auto p-2 rounded-full hover:bg-gray-100 btn-press">
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-4" id="courseDetailContent">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 导入导出模态框 -->
+        <div id="importExportModal" class="fixed inset-0 z-50 hidden">
+            <div class="modal-backdrop absolute inset-0" id="importExportBackdrop"></div>
+            <div class="absolute center top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-5 w-[90%] max-w-md animate-fade-in">
+                <h3 class="text-lg font-bold mb-4" id="ieTitle">导出数据</h3>
+                <div id="exportContent">
+                    <p class="text-gray-600 mb-3">复制下方文本保存好，换设备时可以导入恢复数据：</p>
+                    <textarea id="exportData" readonly class="w-full h-32 p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs font-mono resize-none"></textarea>
+                    <button id="copyExportBtn" class="w-full mt-3 py-3 bg-primary text-white rounded-xl font-medium btn-press">复制到剪贴板</button>
+                </div>
+                <div id="importContent" class="hidden">
+                    <p class="text-gray-600 mb-3">粘贴之前导出的数据文本：</p>
+                    <textarea id="importData" class="w-full h-32 p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs font-mono resize-none" placeholder="粘贴备份数据..."></textarea>
+                    <p id="importError" class="text-red-500 text-sm mt-2 hidden">数据格式错误，请检查</p>
+                    <button id="confirmImportBtn" class="w-full mt-3 py-3 bg-primary text-white rounded-xl font-medium btn-press">确认导入</button>
+                </div>
+                <button id="closeIEModal" class="w-full mt-3 py-3 border border-gray-200 rounded-xl font-medium btn-press">关闭</button>
+            </div>
+        </div>
+
+        <!-- Toast提示 -->
+        <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 hidden">
+            <div class="bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg text-sm"></div>
+        </div>
+        
+        <input type="file" id="importFile" accept=".json" class="hidden">
+    </div>
+
+    <script>
+        // 数据存储
+        const STORAGE_KEY = 'kids_course_tracker_data';
+        const WEEKDAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        let appData = {
+            children: [],
+            courses: [],
+            records: [],
+            currentChildId: null
+        };
+        
+        // 选中的星期
+        let selectedWeekdays = [];
+
+        // 初始化数据
+        function initData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    appData = JSON.parse(saved);
+                    // 兼容旧数据，给没有schedule字段的课程补空值
+                    appData.courses.forEach(c => {
+                        if (!c.schedule) {
+                            c.schedule = { enabled: false, weekdays: [], startTime: '09:00', endTime: '10:30', location: '' };
+                        }
+                    });
+                } catch (e) {
+                    console.error('数据加载失败', e);
+                }
+            }
+            
+            // 默认创建一个孩子
+            if (appData.children.length === 0) {
+                appData.children.push({
+                    id: generateId(),
+                    name: '大宝',
+                    avatar: '👦'
+                });
+                appData.currentChildId = appData.children[0].id;
+                saveData();
+            }
+            
+            if (!appData.currentChildId && appData.children.length > 0) {
+                appData.currentChildId = appData.children[0].id;
+            }
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+            render();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.querySelector('div').textContent = message;
+            toast.classList.remove('hidden');
+            toast.classList.add('toast');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('toast');
+            }, 2300);
+        }
+
+        // 获取本周一日期
+        function getMonday(d) {
+            d = new Date(d);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        }
+
+        // 格式化日期 YYYY-MM-DD
+        function formatDate(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 判断某天某课程是否已经打卡
+        function isCheckedIn(courseId, dateStr) {
+            return appData.records.some(r => r.courseId === courseId && r.date === dateStr);
+        }
+
+        // 计算课程统计
+        function getCourseStats(courseId) {
+            const course = appData.courses.find(c => c.id === courseId);
+            if (!course) return { completed: 0, remaining: 0, leaves: 0 };
+            
+            let completed = 0;
+            let leaves = 0;
+            appData.records.forEach(r => {
+                if (r.courseId === courseId) {
+                    if (r.type === 'attend') {
+                        completed += r.hours;
+                    } else if (r.type === 'leave') {
+                        completed += r.hours;
+                        leaves++;
+                    }
+                }
+            });
+            
+            return {
+                completed,
+                remaining: Math.max(0, course.totalHours - completed),
+                leaves,
+                total: course.totalHours
+            };
+        }
+
+        // 获取课程对当前孩子可用（包括共享的）
+        function getAvailableCourses(childId) {
+            return appData.courses.filter(c => {
+                if (c.childId === childId) return true;
+                if (c.isShared && c.sharedWith && c.sharedWith.includes(childId)) return true;
+                return false;
+            });
+        }
+
+        // 获取本周即将到来的课程
+        function getUpcomingClasses(childId) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayWeekday = today.getDay();
+            const courses = getAvailableCourses(childId);
+            const upcoming = [];
+            
+            courses.forEach(course => {
+                if (!course.schedule || !course.schedule.enabled || !course.schedule.weekdays.length) return;
+                
+                course.schedule.weekdays.forEach(wd => {
+                    // 计算该课程本周的日期
+                    let daysUntil = wd - todayWeekday;
+                    if (daysUntil < 0) daysUntil += 7; // 下周的
+                    
+                    const classDate = new Date(today);
+                    classDate.setDate(today.getDate() + daysUntil);
+                    const dateStr = formatDate(classDate);
+                    
+                    // 已经打过卡的今天及过去的课程不显示
+                    if (daysUntil === 0) {
+                        const [startH, startM] = course.schedule.startTime.split(':').map(Number);
+                        const classTime = new Date(today);
+                        classTime.setHours(startH, startM, 0, 0);
+                        // 如果已经开始超过2小时，认为已结束
+                        const now = new Date();
+                        if (now - classTime > 2 * 60 * 60 * 1000 && isCheckedIn(course.id, dateStr)) return;
+                    } else if (daysUntil < 0) {
+                        return;
+                    }
+                    
+                    upcoming.push({
+                        course,
+                        date: classDate,
+                        dateStr,
+                        weekday: wd,
+                        daysUntil,
+                        isToday: daysUntil === 0,
+                        isTomorrow: daysUntil === 1,
+                        checkedIn: isCheckedIn(course.id, dateStr),
+                        startTime: course.schedule.startTime,
+                        endTime: course.schedule.endTime,
+                        location: course.schedule.location || ''
+                    });
+                });
+            });
+            
+            // 按时间排序
+            upcoming.sort((a, b) => {
+                if (a.daysUntil !== b.daysUntil) return a.daysUntil - b.daysUntil;
+                return a.startTime.localeCompare(b.startTime);
+            });
+            
+            return upcoming;
+        }
+
+        // 渲染即将到来的课程提醒
+        function renderUpcoming() {
+            const list = document.getElementById('upcomingList');
+            const countEl = document.getElementById('upcomingCount');
+            const section = document.getElementById('upcomingSection');
+            const childId = appData.currentChildId;
+            const upcoming = getUpcomingClasses(childId);
+            
+            // 只显示最近5个
+            const display = upcoming.slice(0, 5);
+            
+            if (display.length === 0) {
+                section.classList.add('hidden');
+                return;
+            }
+            
+            section.classList.remove('hidden');
+            countEl.textContent = `本周共 ${upcoming.length} 节课`;
+            list.innerHTML = '';
+            
+            display.forEach(item => {
+                const { course, isToday, isTomorrow, startTime, endTime, daysUntil, checkedIn, location } = item;
+                const owner = appData.children.find(c => c.id === course.childId);
+                const isShared = course.childId !== childId;
+                
+                let dayLabel = '';
+                let dayBadge = '';
+                if (isToday) {
+                    dayLabel = '今天';
+                    dayBadge = 'bg-red-500 text-white pulse-ring';
+                } else if (isTomorrow) {
+                    dayLabel = '明天';
+                    dayBadge = 'bg-orange-100 text-orange-600';
+                } else {
+                    dayLabel = WEEKDAY_NAMES[item.weekday];
+                    dayBadge = 'bg-gray-100 text-gray-600';
+                }
+                
+                // 计算距离上课还有多久
+                let timeHint = '';
+                if (isToday) {
+                    const [h, m] = startTime.split(':').map(Number);
+                    const now = new Date();
+                    const classTime = new Date();
+                    classTime.setHours(h, m, 0, 0);
+                    const diffMs = classTime - now;
+                    if (diffMs > 0) {
+                        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                        if (diffHours > 0) {
+                            timeHint = `${diffHours}小时${diffMins}分钟后`;
+                        } else {
+                            timeHint = `${diffMins}分钟后`;
+                        }
+                    } else {
+                        timeHint = '正在进行/已结束';
+                    }
+                }
+                
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl p-3 card-shadow flex items-center gap-3';
+                card.innerHTML = `
+                    <div class="flex flex-col items-center">
+                        <span class="text-xs px-2 py-0.5 rounded-full ${dayBadge} font-medium">${dayLabel}</span>
+                        <span class="text-lg font-bold text-gray-800 mt-1">${startTime}</span>
+                        <span class="text-xs text-gray-400">-${endTime}</span>
+                    </div>
+                    <div class="w-px h-12 bg-gray-100"></div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">${getCourseIcon(course.name)}</span>
+                            <span class="font-bold truncate">${course.name}</span>
+                            ${isShared ? '<span class="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded">共享</span>' : ''}
+                            ${checkedIn ? '<span class="text-xs px-1.5 py-0.5 bg-green-100 text-green-600 rounded">✓ 已打卡</span>' : ''}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                            <span>${owner.avatar} ${owner.name}</span>
+                            ${location ? `<span>📍 ${location}</span>` : ''}
+                        </div>
+                        ${timeHint ? `<p class="text-xs text-primary mt-0.5">⏳ ${timeHint}</p>` : ''}
+                    </div>
+                    ${!checkedIn ? `
+                    <button class="quick-checkin px-3 py-2 rounded-lg text-white text-sm font-medium btn-press" 
+                            style="background: ${course.color}" 
+                            data-course-id="${course.id}"
+                            data-date="${item.dateStr}">
+                        打卡
+                    </button>` : `
+                    <span class="text-2xl">✅</span>
+                    `}
+                `;
+                list.appendChild(card);
+            });
+            
+            // 绑定快速打卡
+            document.querySelectorAll('.quick-checkin').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const courseId = btn.dataset.courseId;
+                    const date = btn.dataset.date;
+                    quickCheckin(courseId, date);
+                };
+            });
+        }
+        
+        // 快速打卡
+        function quickCheckin(courseId, dateStr) {
+            const course = appData.courses.find(c => c.id === courseId);
+            if (!course) return;
+            
+            appData.records.push({
+                id: generateId(),
+                courseId,
+                type: 'attend',
+                hours: course.hoursPerClass,
+                date: dateStr,
+                note: '',
+                createdAt: new Date().toISOString()
+            });
+            
+            saveData();
+            showToast('打卡成功 🎉');
+        }
+
+        // 渲染首页
+        function renderHome() {
+            const currentChild = appData.children.find(c => c.id === appData.currentChildId);
+            const courses = getAvailableCourses(appData.currentChildId);
+            
+            // 更新概览统计
+            let totalLessons = 0, totalCompleted = 0, totalRemaining = 0;
+            const now = new Date();
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            let monthCheckins = 0, monthLeaves = 0;
+            
+            courses.forEach(course => {
+                const stats = getCourseStats(course.id);
+                totalLessons += course.totalHours;
+                totalCompleted += stats.completed;
+                totalRemaining += stats.remaining;
+            });
+            
+            appData.records.forEach(r => {
+                const recordDate = new Date(r.date);
+                if (recordDate >= monthStart && recordDate <= now) {
+                    const course = appData.courses.find(c => c.id === r.courseId);
+                    if (course && (course.childId === appData.currentChildId || (course.isShared && course.sharedWith && course.sharedWith.includes(appData.currentChildId)))) {
+                        if (r.type === 'attend') monthCheckins++;
+                        else if (r.type === 'leave') monthLeaves++;
+                    }
+                }
+            });
+            
+            document.getElementById('totalLessons').textContent = totalLessons;
+            document.getElementById('totalCompleted').textContent = totalCompleted.toFixed(1).replace(/\.0$/, '');
+            document.getElementById('totalRemaining').textContent = totalRemaining.toFixed(1).replace(/\.0$/, '');
+            document.getElementById('monthCheckins').textContent = monthCheckins;
+            document.getElementById('monthLeaves').textContent = monthLeaves;
+            
+            // 渲染本周课程提醒
+            renderUpcoming();
+            
+            // 渲染孩子标签
+            const childTabList = document.getElementById('childTabList');
+            childTabList.innerHTML = '';
+            appData.children.forEach(child => {
+                const isActive = child.id === appData.currentChildId;
+                const btn = document.createElement('button');
+                btn.className = `flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition ${isActive ? 'bg-primary text-white' : 'bg-white text-gray-600'}`;
+                btn.innerHTML = `<span class="text-lg">${child.avatar}</span><span class="font-medium">${child.name}</span>`;
+                btn.onclick = () => {
+                    appData.currentChildId = child.id;
+                    saveData();
+                };
+                
+                if (child.id === appData.currentChildId) {
+                    const editBtn = document.createElement('span');
+                    editBtn.className = 'ml-1';
+                    editBtn.innerHTML = '✏️';
+                    editBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        editChild(child.id);
+                    };
+                    btn.appendChild(editBtn);
+                }
+                
+                childTabList.appendChild(btn);
+            });
+            
+            // 添加孩子按钮
+            const addChildTab = document.createElement('button');
+            addChildTab.className = 'flex items-center gap-1 px-3 py-2 rounded-full border border-dashed border-gray-300 text-gray-500 whitespace-nowrap btn-press';
+            addChildTab.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg><span>添加</span>`;
+            addChildTab.onclick = () => showChildModal();
+            childTabList.appendChild(addChildTab);
+            
+            // 渲染课程列表
+            const courseList = document.getElementById('courseList');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (courses.length === 0) {
+                emptyState.classList.remove('hidden');
+                Array.from(courseList.children).forEach(child => {
+                    if (child.id !== 'emptyState') child.remove();
+                });
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            Array.from(courseList.children).forEach(child => {
+                if (child.id !== 'emptyState') child.remove();
+            });
+            
+            courses.forEach(course => {
+                const stats = getCourseStats(course.id);
+                const progress = course.totalHours > 0 ? (stats.completed / course.totalHours * 100) : 0;
+                const courseOwner = appData.children.find(c => c.id === course.childId);
+                const isShared = course.childId !== appData.currentChildId;
+                
+                // 上课时间文字
+                let scheduleText = '';
+                if (course.schedule && course.schedule.enabled && course.schedule.weekdays.length > 0) {
+                    const days = course.schedule.weekdays.map(d => WEEKDAY_NAMES[d].replace('周', '')).join('、');
+                    scheduleText = `每周${days} ${course.schedule.startTime}`;
+                } else {
+                    scheduleText = `每次${course.hoursPerClass}课时`;
+                }
+                
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl p-4 card-shadow btn-press';
+                card.onclick = () => showCourseDetail(course.id);
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg" style="background: ${course.color}">
+                                ${getCourseIcon(course.name)}
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-bold">${course.name}</h3>
+                                    ${isShared ? '<span class="text-xs px-2 py-0.5 bg-purple-100 text-purple-600 rounded-full">共享</span>' : ''}
+                                </div>
+                                <p class="text-xs text-gray-400">
+                                    ${isShared ? `来自 ${courseOwner.name}` : scheduleText}
+                                </p>
+                            </div>
+                        </div>
+                        <button class="checkin-btn px-4 py-2 rounded-full text-white text-sm font-medium btn-press" style="background: ${course.color}" data-id="${course.id}">
+                            打卡
+                        </button>
+                    </div>
+                    <div class="mb-2">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-500">已上 ${stats.completed.toFixed(1).replace(/\.0$/, '')} / ${course.totalHours} 课时</span>
+                            <span class="font-medium" style="color: ${course.color}">${progress.toFixed(0)}%</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="progress-bar h-full rounded-full" style="width: ${progress}%; background: ${course.color}"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-gray-400">
+                        <span>剩余 ${stats.remaining.toFixed(1).replace(/\.0$/, '')} 课时</span>
+                        <span>已请假 ${stats.leaves} 次</span>
+                    </div>
+                `;
+                courseList.appendChild(card);
+            });
+            
+            // 绑定打卡按钮事件
+            document.querySelectorAll('.checkin-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    showCheckinModal(btn.dataset.id);
+                };
+            });
+        }
+        
+        // 渲染周课表页面
+        function renderSchedule() {
+            const container = document.getElementById('weekSchedule');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const monday = getMonday(new Date());
+            
+            // 获取所有孩子的所有有固定时间的课程
+            const allCourses = [];
+            appData.courses.forEach(course => {
+                if (!course.schedule || !course.schedule.enabled || !course.schedule.weekdays.length) return;
+                
+                course.schedule.weekdays.forEach(wd => {
+                    const classDate = new Date(monday);
+                    classDate.setDate(monday.getDate() + wd - 1); // 周一是1号偏移
+                    const dateStr = formatDate(classDate);
+                    
+                    allCourses.push({
+                        course,
+                        date: classDate,
+                        dateStr,
+                        weekday: wd,
+                        startTime: course.schedule.startTime,
+                        endTime: course.schedule.endTime,
+                        location: course.schedule.location,
+                        owner: appData.children.find(c => c.id === course.childId),
+                        checkedIn: isCheckedIn(course.id, dateStr),
+                        isToday: formatDate(today) === dateStr,
+                        isPast: classDate < today
+                    });
+                });
+            });
+            
+            // 按日期、时间排序
+            allCourses.sort((a, b) => {
+                if (a.dateStr !== b.dateStr) return a.dateStr.localeCompare(b.dateStr);
+                return a.startTime.localeCompare(b.startTime);
+            });
+            
+            if (allCourses.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 text-gray-400">
+                        <div class="text-5xl mb-3">📅</div>
+                        <p>还没有设置固定上课时间</p>
+                        <p class="text-sm mt-1">在添加/编辑课程时可以设置</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 按天分组
+            const grouped = {};
+            allCourses.forEach(item => {
+                if (!grouped[item.dateStr]) grouped[item.dateStr] = [];
+                grouped[item.dateStr].push(item);
+            });
+            
+            container.innerHTML = '';
+            Object.keys(grouped).sort().forEach(dateStr => {
+                const date = new Date(dateStr);
+                const dayItems = grouped[dateStr];
+                const isToday = formatDate(today) === dateStr;
+                
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'sticky top-0 bg-gradient-to-b from-[#f8fafc] to-transparent py-2 z-10';
+                dayHeader.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold ${isToday ? 'text-primary' : 'text-gray-700'}">
+                            ${date.getMonth() + 1}月${date.getDate()}日
+                        </span>
+                        <span class="text-sm ${isToday ? 'text-primary' : 'text-gray-500'}">
+                            ${WEEKDAY_NAMES[date.getDay()]}
+                        </span>
+                        ${isToday ? '<span class="text-xs px-2 py-0.5 bg-primary text-white rounded-full">今天</span>' : ''}
+                    </div>
+                `;
+                container.appendChild(dayHeader);
+                
+                dayItems.forEach(item => {
+                    const { course, startTime, endTime, location, owner, checkedIn, isPast, isToday: isClassToday } = item;
+                    const stats = getCourseStats(course.id);
+                    
+                    const card = document.createElement('div');
+                    let opacityClass = isPast && !checkedIn ? 'opacity-60' : '';
+                    card.className = `bg-white rounded-xl p-4 card-shadow mb-2 flex items-center gap-3 ${opacityClass}`;
+                    card.innerHTML = `
+                        <div class="flex flex-col items-center justify-center w-14">
+                            <span class="text-lg font-bold" style="color: ${course.color}">${startTime}</span>
+                            <span class="text-xs text-gray-400">-${endTime}</span>
+                        </div>
+                        <div class="w-1 self-stretch rounded-full" style="background: ${course.color}"></div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">${getCourseIcon(course.name)}</span>
+                                <span class="font-bold">${course.name}</span>
+                                ${checkedIn ? '<span class="text-xs px-2 py-0.5 bg-green-100 text-green-600 rounded-full">✓ 已完成</span>' : 
+                                  (isPast ? '<span class="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">未打卡</span>' : '')}
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
+                                <span>${owner.avatar} ${owner.name}</span>
+                                ${location ? `<span class="text-xs">📍 ${location}</span>` : ''}
+                                <span class="text-xs text-gray-400">剩${stats.remaining.toFixed(1).replace(/\.0$/, '')}课时</span>
+                            </div>
+                        </div>
+                        ${!checkedIn && !isPast ? `
+                        <button class="schedule-checkin px-3 py-2 rounded-lg text-white text-sm font-medium btn-press"
+                                style="background: ${course.color}"
+                                data-course-id="${course.id}"
+                                data-date="${dateStr}">
+                            打卡
+                        </button>
+                        ` : ''}
+                    `;
+                    container.appendChild(card);
+                });
+            });
+            
+            // 绑定打卡
+            document.querySelectorAll('.schedule-checkin').forEach(btn => {
+                btn.onclick = () => quickCheckin(btn.dataset.courseId, btn.dataset.date);
+            });
+        }
+
+        function getCourseIcon(name) {
+            const icons = {
+                '钢琴': '🎹', '钢琴课': '🎹',
+                '英语': '🔤', '英语课': '🔤',
+                '绘画': '🎨', '画画': '🎨', '美术': '🎨',
+                '舞蹈': '💃', '跳舞': '💃',
+                '数学': '🔢', '奥数': '🧮',
+                '语文': '📖', '书法': '✍️',
+                '游泳': '🏊', '篮球': '🏀', '足球': '⚽',
+                '跆拳道': '🥋', '武术': '🥋',
+                '围棋': '⚫', '象棋': '♟️',
+                '编程': '💻', '乐高': '🧱',
+                '主持': '🎤', '口才': '🎤', '声乐': '🎤', '唱歌': '🎵',
+                '小提琴': '🎻', '吉他': '🎸', '架子鼓': '🥁',
+                '羽毛球': '🏸', '乒乓球': '🏓', '网球': '🎾',
+                '滑冰': '⛸️', '滑雪': '⛷️', '马术': '🐎'
+            };
+            
+            for (const key in icons) {
+                if (name.includes(key)) return icons[key];
+            }
+            return '📚';
+        }
+
+        // 渲染历史记录
+        function renderHistory() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            const records = [...appData.records].filter(r => {
+                const course = appData.courses.find(c => c.id === r.courseId);
+                return course && (course.childId === appData.currentChildId || (course.isShared && course.sharedWith && course.sharedWith.includes(appData.currentChildId)));
+            }).sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            if (records.length === 0) {
+                historyList.innerHTML = '<p class="text-center text-gray-400 py-12">暂无打卡记录</p>';
+                return;
+            }
+            
+            const grouped = {};
+            records.forEach(r => {
+                if (!grouped[r.date]) grouped[r.date] = [];
+                grouped[r.date].push(r);
+            });
+            
+            Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a)).forEach(date => {
+                const dateObj = new Date(date);
+                const dateHeader = document.createElement('div');
+                dateHeader.className = 'text-sm text-gray-500 font-medium sticky top-0 bg-gradient-to-b from-[#f8fafc] to-transparent py-2 z-10';
+                dateHeader.textContent = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日 星期${'日一二三四五六'[dateObj.getDay()]}`;
+                historyList.appendChild(dateHeader);
+                
+                grouped[date].forEach(record => {
+                    const course = appData.courses.find(c => c.id === record.courseId);
+                    if (!course) return;
+                    const child = appData.children.find(c => c.id === course.childId);
+                    
+                    const item = document.createElement('div');
+                    item.className = 'bg-white rounded-xl p-3 card-shadow flex items-center gap-3 mb-2 btn-press';
+                    item.onclick = () => showCheckinModal(course.id, record.id);
+                    
+                    const typeIcon = record.type === 'attend' ? '✅' : '🤒';
+                    const typeText = record.type === 'attend' ? '上课' : '请假';
+                    const typeColor = record.type === 'attend' ? 'text-green-500' : 'text-yellow-600';
+                    
+                    item.innerHTML = `
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg" style="background: ${course.color}20">
+                            ${getCourseIcon(course.name)}
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium">${course.name}</span>
+                                <span class="${typeColor} text-xs">${typeIcon} ${typeText}</span>
+                            </div>
+                            <div class="text-xs text-gray-400">
+                                ${child.name} · 消耗 ${record.hours.toFixed(1).replace(/\.0$/, '')} 课时
+                                ${record.note ? ` · ${record.note}` : ''}
+                            </div>
+                        </div>
+                    `;
+                    historyList.appendChild(item);
+                });
+            });
+        }
+
+        // 渲染孩子管理页面
+        function renderChildren() {
+            const childList = document.getElementById('childList');
+            childList.innerHTML = '';
+            
+            appData.children.forEach(child => {
+                const courseCount = appData.courses.filter(c => c.childId === child.id).length;
+                const item = document.createElement('div');
+                item.className = 'bg-white rounded-2xl p-4 card-shadow flex items-center justify-between btn-press';
+                item.onclick = () => editChild(child.id);
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-2xl">
+                            ${child.avatar}
+                        </div>
+                        <div>
+                            <h3 class="font-bold">${child.name}</h3>
+                            <p class="text-xs text-gray-400">名下 ${courseCount} 个课程</p>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                `;
+                childList.appendChild(item);
+            });
+        }
+
+        // 渲染课程详情
+        function showCourseDetail(courseId) {
+            const course = appData.courses.find(c => c.id === courseId);
+            if (!course) return;
+            
+            const stats = getCourseStats(courseId);
+            const owner = appData.children.find(c => c.id === course.childId);
+            const records = appData.records.filter(r => r.courseId === courseId).sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            document.getElementById('detailTitle').textContent = course.name;
+            document.getElementById('editCourseBtn').onclick = () => {
+                hideCourseDetail();
+                showCourseModal(courseId);
+            };
+            
+            const content = document.getElementById('courseDetailContent');
+            let sharedText = '';
+            if (course.isShared && course.sharedWith && course.sharedWith.length > 0) {
+                const sharedNames = course.sharedWith.map(id => {
+                    const child = appData.children.find(c => c.id === id);
+                    return child ? child.name : '';
+                }).filter(n => n).join('、');
+                sharedText = `<p class="text-sm text-purple-600">🤝 已共享给：${sharedNames}</p>`;
+            }
+            
+            let scheduleText = '';
+            if (course.schedule && course.schedule.enabled && course.schedule.weekdays.length > 0) {
+                const days = course.schedule.weekdays.map(d => WEEKDAY_NAMES[d]).join('、');
+                scheduleText = `
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">固定上课时间</span>
+                        <span>${days} ${course.schedule.startTime}-${course.schedule.endTime}</span>
+                    </div>
+                `;
+                if (course.schedule.location) {
+                    scheduleText += `
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">上课地点</span>
+                            <span>${course.schedule.location}</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            content.innerHTML = `
+                <div class="rounded-2xl p-5 text-white mb-5" style="background: linear-gradient(135deg, ${course.color}, ${course.color}dd)">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-3xl">
+                            ${getCourseIcon(course.name)}
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold">${course.name}</h2>
+                            <p class="text-white/80 text-sm">${owner.name} ${owner.avatar}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div>
+                            <p class="text-2xl font-bold">${stats.completed.toFixed(1).replace(/\.0$/, '')}</p>
+                            <p class="text-xs text-white/70">已上课时</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold">${stats.remaining.toFixed(1).replace(/\.0$/, '')}</p>
+                            <p class="text-xs text-white/70">剩余课时</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold">${stats.leaves}</p>
+                            <p class="text-xs text-white/70">请假次数</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-4 card-shadow mb-4">
+                    <h3 class="font-medium mb-3">课程信息</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">总课时</span>
+                            <span>${course.totalHours} 课时</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">每次上课</span>
+                            <span>${course.hoursPerClass} 课时</span>
+                        </div>
+                        ${scheduleText}
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">完成进度</span>
+                            <span>${(stats.completed / course.totalHours * 100).toFixed(0)}%</span>
+                        </div>
+                    </div>
+                    ${sharedText}
+                </div>
+                
+                <button onclick="showCheckinModal('${courseId}')" class="w-full py-3 rounded-xl text-white font-medium btn-press mb-5" style="background: ${course.color}">
+                    📝 记录上课/请假
+                </button>
+                
+                <h3 class="font-medium mb-3">打卡记录</h3>
+                <div class="space-y-2">
+                    ${records.length === 0 ? '<p class="text-center text-gray-400 py-6">暂无打卡记录</p>' : ''}
+                    ${records.map(r => {
+                        const typeIcon = r.type === 'attend' ? '✅' : '🤒';
+                        const typeText = r.type === 'attend' ? '上课' : '请假';
+                        return `
+                            <div class="bg-white rounded-xl p-3 card-shadow flex items-center justify-between btn-press" onclick="showCheckinModal('${courseId}', '${r.id}')">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span>${typeIcon}</span>
+                                        <span class="font-medium">${typeText}</span>
+                                        <span class="text-xs text-gray-400">${r.date}</span>
+                                    </div>
+                                    ${r.note ? `<p class="text-sm text-gray-500 mt-1">${r.note}</p>` : ''}
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    -${r.hours.toFixed(1).replace(/\.0$/, '')} 课时
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            document.getElementById('courseDetailModal').classList.remove('hidden');
+        }
+
+        function hideCourseDetail() {
+            document.getElementById('courseDetailModal').classList.add('hidden');
+        }
+
+        // 课程模态框
+        function showCourseModal(courseId = null) {
+            const modal = document.getElementById('courseModal');
+            const form = document.getElementById('courseForm');
+            form.reset();
+            document.getElementById('sharedWithContainer').classList.add('hidden');
+            document.getElementById('deleteCourseBtn').classList.add('hidden');
+            document.getElementById('scheduleSettings').classList.add('hidden');
+            selectedWeekdays = [];
+            
+            // 重置星期选择
+            document.querySelectorAll('.weekday-chip').forEach(chip => {
+                chip.classList.remove('active');
+            });
+            
+            // 填充孩子选择
+            const courseChild = document.getElementById('courseChild');
+            courseChild.innerHTML = '';
+            appData.children.forEach(child => {
+                const opt = document.createElement('option');
+                opt.value = child.id;
+                opt.textContent = `${child.avatar} ${child.name}`;
+                if (child.id === appData.currentChildId) opt.selected = true;
+                courseChild.appendChild(opt);
+            });
+            
+            // 颜色选择默认第一个
+            document.querySelectorAll('#colorPicker button').forEach((btn, idx) => {
+                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-primary');
+                if (idx === 0) btn.classList.add('ring-2', 'ring-offset-2', 'ring-primary');
+            });
+            document.getElementById('courseColor').value = '#6366F1';
+            
+            if (courseId) {
+                const course = appData.courses.find(c => c.id === courseId);
+                if (course) {
+                    document.getElementById('courseModalTitle').textContent = '编辑培训班';
+                    document.getElementById('courseId').value = course.id;
+                    document.getElementById('courseName').value = course.name;
+                    document.getElementById('courseChild').value = course.childId;
+                    document.getElementById('totalHours').value = course.totalHours;
+                    document.getElementById('hoursPerClass').value = course.hoursPerClass;
+                    document.getElementById('isShared').checked = course.isShared || false;
+                    document.getElementById('courseColor').value = course.color;
+                    
+                    // 填充 schedule
+                    if (course.schedule) {
+                        document.getElementById('hasSchedule').checked = course.schedule.enabled;
+                        if (course.schedule.enabled) {
+                            document.getElementById('scheduleSettings').classList.remove('hidden');
+                            selectedWeekdays = [...(course.schedule.weekdays || [])];
+                            document.querySelectorAll('.weekday-chip').forEach(chip => {
+                                const day = parseInt(chip.dataset.day);
+                                if (selectedWeekdays.includes(day)) {
+                                    chip.classList.add('active');
+                                }
+                            });
+                            document.getElementById('startTime').value = course.schedule.startTime || '09:00';
+                            document.getElementById('endTime').value = course.schedule.endTime || '10:30';
+                            document.getElementById('courseLocation').value = course.schedule.location || '';
+                        }
+                    }
+                    
+                    // 选中对应颜色
+                    document.querySelectorAll('#colorPicker button').forEach(btn => {
+                        btn.classList.remove('ring-2', 'ring-offset-2', 'ring-primary');
+                        if (btn.dataset.color === course.color) {
+                            btn.classList.add('ring-2', 'ring-offset-2', 'ring-primary');
+                        }
+                    });
+                    
+                    if (course.isShared) {
+                        document.getElementById('sharedWithContainer').classList.remove('hidden');
+                        renderSharedWithList(course.childId, course.sharedWith || []);
+                    }
+                    
+                    document.getElementById('deleteCourseBtn').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('courseModalTitle').textContent = '添加培训班';
+                document.getElementById('courseId').value = '';
+                document.getElementById('hoursPerClass').value = 1;
+                document.getElementById('hasSchedule').checked = false;
+                document.getElementById('startTime').value = '09:00';
+                document.getElementById('endTime').value = '10:30';
+                document.getElementById('courseLocation').value = '';
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function renderSharedWithList(ownerChildId, selected = []) {
+            const list = document.getElementById('sharedWithList');
+            list.innerHTML = '';
+            
+            appData.children.filter(c => c.id !== ownerChildId).forEach(child => {
+                const isChecked = selected.includes(child.id);
+                const label = document.createElement('label');
+                label.className = 'flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer';
+                label.innerHTML = `
+                    <input type="checkbox" value="${child.id}" class="shared-child-checkbox w-5 h-5" ${isChecked ? 'checked' : ''}>
+                    <span class="text-lg">${child.avatar}</span>
+                    <span>${child.name}</span>
+                `;
+                list.appendChild(label);
+            });
+            
+            if (appData.children.filter(c => c.id !== ownerChildId).length === 0) {
+                list.innerHTML = '<p class="text-sm text-gray-400 text-center py-2">请先添加其他孩子才能共享</p>';
+            }
+        }
+
+        function hideCourseModal() {
+            document.getElementById('courseModal').classList.add('hidden');
+        }
+
+        // 孩子模态框
+        function showChildModal() {
+            const modal = document.getElementById('childModal');
+            const form = document.getElementById('childForm');
+            form.reset();
+            document.getElementById('deleteChildBtn').classList.add('hidden');
+            document.getElementById('childModalTitle').textContent = '添加孩子';
+            document.getElementById('childId').value = '';
+            
+            document.querySelectorAll('#avatarPicker button').forEach((btn, idx) => {
+                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-primary');
+                if (idx === 0) btn.classList.add('ring-2', 'ring-offset-2', 'ring-primary');
+            });
+            document.getElementById('childAvatar').value = '👦';
+            
+            modal.classList.remove('hidden');
+        }
+
+        function editChild(childId) {
+            const child = appData.children.find(c => c.id === childId);
+            if (!child) return;
+            
+            const modal = document.getElementById('childModal');
+            document.getElementById('childModalTitle').textContent = '编辑孩子信息';
+            document.getElementById('childId').value = child.id;
+            document.getElementById('childName').value = child.name;
+            document.getElementById('childAvatar').value = child.avatar;
+            
+            document.querySelectorAll('#avatarPicker button').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-primary');
+                if (btn.dataset.avatar === child.avatar) {
+                    btn.classList.add('ring-2', 'ring-offset-2', 'ring-primary');
+                }
+            });
+            
+            document.getElementById('deleteChildBtn').classList.remove('hidden');
+            modal.classList.remove('hidden');
+        }
+
+        function hideChildModal() {
+            document.getElementById('childModal').classList.add('hidden');
+        }
+
+        // 打卡模态框
+        function showCheckinModal(courseId, recordId = null) {
+            const course = appData.courses.find(c => c.id === courseId);
+            if (!course) return;
+            
+            const modal = document.getElementById('checkinModal');
+            const form = document.getElementById('checkinForm');
+            form.reset();
+            
+            document.getElementById('checkinCourseId').value = courseId;
+            document.getElementById('checkinRecordId').value = recordId || '';
+            document.getElementById('checkinCourseName').textContent = course.name;
+            
+            const stats = getCourseStats(courseId);
+            document.getElementById('checkinCourseInfo').textContent = `已上 ${stats.completed.toFixed(1).replace(/\.0$/, '')} / ${course.totalHours} 课时，剩余 ${stats.remaining.toFixed(1).replace(/\.0$/, '')} 课时`;
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('checkinDate').value = today;
+            document.getElementById('checkinHours').value = course.hoursPerClass;
+            document.getElementById('deleteRecordBtn').classList.add('hidden');
+            
+            document.querySelector('input[name="recordType"][value="attend"]').checked = true;
+            
+            if (recordId) {
+                const record = appData.records.find(r => r.id === recordId);
+                if (record) {
+                    document.querySelector(`input[name="recordType"][value="${record.type}"]`).checked = true;
+                    document.getElementById('checkinHours').value = record.hours;
+                    document.getElementById('checkinDate').value = record.date;
+                    document.getElementById('checkinNote').value = record.note || '';
+                    document.getElementById('deleteRecordBtn').classList.remove('hidden');
+                }
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function hideCheckinModal() {
+            document.getElementById('checkinModal').classList.add('hidden');
+        }
+
+        // 导入导出
+        function showExportModal() {
+            document.getElementById('ieTitle').textContent = '导出数据';
+            document.getElementById('exportContent').classList.remove('hidden');
+            document.getElementById('importContent').classList.add('hidden');
+            document.getElementById('exportData').value = JSON.stringify(appData, null, 2);
+            document.getElementById('importExportModal').classList.remove('hidden');
+        }
+
+        function showImportModal() {
+            document.getElementById('ieTitle').textContent = '导入数据';
+            document.getElementById('exportContent').classList.add('hidden');
+            document.getElementById('importContent').classList.remove('hidden');
+            document.getElementById('importData').value = '';
+            document.getElementById('importError').classList.add('hidden');
+            document.getElementById('importExportModal').classList.remove('hidden');
+        }
+
+        function hideIEModal() {
+            document.getElementById('importExportModal').classList.add('hidden');
+        }
+
+        // 渲染函数
+        function render() {
+            renderHome();
+            renderSchedule();
+            renderChildren();
+            renderHistory();
+        }
+
+        // 切换页面
+        function switchTab(tabName) {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.tab === tabName) {
+                    btn.classList.add('tab-active');
+                    btn.classList.remove('text-gray-400');
+                } else {
+                    btn.classList.remove('tab-active');
+                    btn.classList.add('text-gray-400');
+                }
+            });
+            
+            document.getElementById('mainContent').classList.add('hidden');
+            document.getElementById('historyPage').classList.add('hidden');
+            document.getElementById('schedulePage').classList.add('hidden');
+            document.getElementById('childrenPage').classList.add('hidden');
+            
+            if (tabName === 'home') document.getElementById('mainContent').classList.remove('hidden');
+            else if (tabName === 'schedule') document.getElementById('schedulePage').classList.remove('hidden');
+            else if (tabName === 'children') document.getElementById('childrenPage').classList.remove('hidden');
+            else if (tabName === 'history') document.getElementById('historyPage').classList.remove('hidden');
+        }
+
+        // 事件绑定
+        document.addEventListener('DOMContentLoaded', () => {
+            initData();
+            render();
+            
+            // 底部导航
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.onclick = () => switchTab(btn.dataset.tab);
+            });
+            
+            // 添加按钮
+            document.getElementById('addBtn').onclick = () => {
+                if (appData.children.length === 0) {
+                    showChildModal();
+                    showToast('请先添加孩子信息');
+                } else {
+                    showCourseModal();
+                }
+            };
+            
+            // 关闭模态框
+            document.getElementById('courseModalBackdrop').onclick = hideCourseModal;
+            document.getElementById('childModalBackdrop').onclick = hideChildModal;
+            document.getElementById('checkinModalBackdrop').onclick = hideCheckinModal;
+            document.getElementById('courseDetailBackdrop').onclick = hideCourseDetail;
+            document.getElementById('importExportBackdrop').onclick = hideIEModal;
+            document.getElementById('closeCourseDetail').onclick = hideCourseDetail;
+            document.getElementById('closeIEModal').onclick = hideIEModal;
+            
+            // 添加孩子按钮
+            document.getElementById('addChildBtn').onclick = showChildModal;
+            
+            // 颜色选择
+            document.querySelectorAll('#colorPicker button').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('#colorPicker button').forEach(b => {
+                        b.classList.remove('ring-2', 'ring-offset-2', 'ring-primary');
+                    });
+                    btn.classList.add('ring-2', 'ring-offset-2', 'ring-primary');
+                    document.getElementById('courseColor').value = btn.dataset.color;
+                };
+            });
+            
+            // 头像选择
+            document.querySelectorAll('#avatarPicker button').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('#avatarPicker button').forEach(b => {
+                        b.classList.remove('ring-2', 'ring-offset-2', 'ring-primary');
+                    });
+                    btn.classList.add('ring-2', 'ring-offset-2', 'ring-primary');
+                    document.getElementById('childAvatar').value = btn.dataset.avatar;
+                };
+            });
+            
+            // 星期选择
+            document.querySelectorAll('.weekday-chip').forEach(chip => {
+                chip.onclick = () => {
+                    const day = parseInt(chip.dataset.day);
+                    if (selectedWeekdays.includes(day)) {
+                        selectedWeekdays = selectedWeekdays.filter(d => d !== day);
+                        chip.classList.remove('active');
+                    } else {
+                        selectedWeekdays.push(day);
+                        chip.classList.add('active');
+                    }
+                };
+            });
+            
+            // 是否启用固定时间开关
+            document.getElementById('hasSchedule').onchange = (e) => {
+                if (e.target.checked) {
+                    document.getElementById('scheduleSettings').classList.remove('hidden');
+                    // 默认选中周末
+                    if (selectedWeekdays.length === 0) {
+                        selectedWeekdays = [0, 6];
+                        document.querySelectorAll('.weekday-chip').forEach(chip => {
+                            const day = parseInt(chip.dataset.day);
+                            if (selectedWeekdays.includes(day)) {
+                                chip.classList.add('active');
+                            }
+                        });
+                    }
+                } else {
+                    document.getElementById('scheduleSettings').classList.add('hidden');
+                }
+            };
+            
+            // 共享开关
+            document.getElementById('isShared').onchange = (e) => {
+                if (e.target.checked) {
+                    document.getElementById('sharedWithContainer').classList.remove('hidden');
+                    const childId = document.getElementById('courseChild').value;
+                    renderSharedWithList(childId, []);
+                } else {
+                    document.getElementById('sharedWithContainer').classList.add('hidden');
+                }
+            };
+            
+            document.getElementById('courseChild').onchange = (e) => {
+                if (document.getElementById('isShared').checked) {
+                    renderSharedWithList(e.target.value, []);
+                }
+            };
+            
+            // 记录类型切换
+            document.querySelectorAll('input[name="recordType"]').forEach(radio => {
+                radio.onchange = (e) => {
+                    if (e.target.value === 'leave') {
+                        document.getElementById('checkinHours').value = 0;
+                    } else {
+                        const courseId = document.getElementById('checkinCourseId').value;
+                        const course = appData.courses.find(c => c.id === courseId);
+                        if (course) {
+                            document.getElementById('checkinHours').value = course.hoursPerClass;
+                        }
+                    }
+                };
+            });
+            
+            // 课程表单提交
+            document.getElementById('courseForm').onsubmit = (e) => {
+                e.preventDefault();
+                const id = document.getElementById('courseId').value;
+                const name = document.getElementById('courseName').value.trim();
+                const childId = document.getElementById('courseChild').value;
+                const totalHours = parseFloat(document.getElementById('totalHours').value);
+                const hoursPerClass = parseFloat(document.getElementById('hoursPerClass').value);
+                const color = document.getElementById('courseColor').value;
+                const isShared = document.getElementById('isShared').checked;
+                const hasSchedule = document.getElementById('hasSchedule').checked;
+                const startTime = document.getElementById('startTime').value;
+                const endTime = document.getElementById('endTime').value;
+                const location = document.getElementById('courseLocation').value.trim();
+                
+                const sharedWith = [];
+                if (isShared) {
+                    document.querySelectorAll('.shared-child-checkbox:checked').forEach(cb => {
+                        sharedWith.push(cb.value);
+                    });
+                }
+                
+                const schedule = {
+                    enabled: hasSchedule,
+                    weekdays: hasSchedule ? [...selectedWeekdays].sort() : [],
+                    startTime,
+                    endTime,
+                    location
+                };
+                
+                if (id) {
+                    const idx = appData.courses.findIndex(c => c.id === id);
+                    if (idx >= 0) {
+                        appData.courses[idx] = {
+                            ...appData.courses[idx],
+                            name, childId, totalHours, hoursPerClass, color, isShared, sharedWith, schedule
+                        };
+                        showToast('课程已更新');
+                    }
+                } else {
+                    appData.courses.push({
+                        id: generateId(),
+                        name, childId, totalHours, hoursPerClass, color, isShared, sharedWith, schedule,
+                        createdAt: new Date().toISOString()
+                    });
+                    showToast('添加成功');
+                }
+                
+                saveData();
+                hideCourseModal();
+            };
+            
+            // 删除课程
+            document.getElementById('deleteCourseBtn').onclick = () => {
+                const id = document.getElementById('courseId').value;
+                if (confirm('确定要删除这个课程吗？相关打卡记录也会被删除。')) {
+                    appData.courses = appData.courses.filter(c => c.id !== id);
+                    appData.records = appData.records.filter(r => r.courseId !== id);
+                    saveData();
+                    hideCourseModal();
+                    showToast('课程已删除');
+                }
+            };
+            
+            // 孩子表单提交
+            document.getElementById('childForm').onsubmit = (e) => {
+                e.preventDefault();
+                const id = document.getElementById('childId').value;
+                const name = document.getElementById('childName').value.trim();
+                const avatar = document.getElementById('childAvatar').value;
+                
+                if (id) {
+                    const idx = appData.children.findIndex(c => c.id === id);
+                    if (idx >= 0) {
+                        appData.children[idx] = { ...appData.children[idx], name, avatar };
+                        showToast('信息已更新');
+                    }
+                } else {
+                    const newChild = { id: generateId(), name, avatar };
+                    appData.children.push(newChild);
+                    appData.currentChildId = newChild.id;
+                    showToast('添加成功');
+                }
+                
+                saveData();
+                hideChildModal();
+            };
+            
+            // 删除孩子
+            document.getElementById('deleteChildBtn').onclick = () => {
+                const id = document.getElementById('childId').value;
+                if (appData.children.length <= 1) {
+                    showToast('至少保留一个孩子');
+                    return;
+                }
+                if (confirm('确定要删除吗？该孩子名下的课程和记录都会被删除。')) {
+                    appData.children = appData.children.filter(c => c.id !== id);
+                    const coursesToDelete = appData.courses.filter(c => c.childId === id).map(c => c.id);
+                    appData.courses = appData.courses.filter(c => c.childId !== id);
+                    appData.records = appData.records.filter(r => !coursesToDelete.includes(r.courseId));
+                    appData.courses.forEach(c => {
+                        if (c.sharedWith) {
+                            c.sharedWith = c.sharedWith.filter(cid => cid !== id);
+                        }
+                    });
+                    
+                    if (appData.currentChildId === id) {
+                        appData.currentChildId = appData.children[0].id;
+                    }
+                    saveData();
+                    hideChildModal();
+                    showToast('已删除');
+                }
+            };
+            
+            // 打卡表单提交
+            document.getElementById('checkinForm').onsubmit = (e) => {
+                e.preventDefault();
+                const courseId = document.getElementById('checkinCourseId').value;
+                const recordId = document.getElementById('checkinRecordId').value;
+                const type = document.querySelector('input[name="recordType"]:checked').value;
+                const hours = parseFloat(document.getElementById('checkinHours').value) || 0;
+                const date = document.getElementById('checkinDate').value;
+                const note = document.getElementById('checkinNote').value.trim();
+                
+                if (recordId) {
+                    const idx = appData.records.findIndex(r => r.id === recordId);
+                    if (idx >= 0) {
+                        appData.records[idx] = { ...appData.records[idx], type, hours, date, note };
+                        showToast('记录已更新');
+                    }
+                } else {
+                    appData.records.push({
+                        id: generateId(),
+                        courseId, type, hours, date, note,
+                        createdAt: new Date().toISOString()
+                    });
+                    showToast(type === 'attend' ? '打卡成功 🎉' : '已记录请假');
+                }
+                
+                saveData();
+                hideCheckinModal();
+            };
+            
+            // 删除打卡记录
+            document.getElementById('deleteRecordBtn').onclick = () => {
+                const recordId = document.getElementById('checkinRecordId').value;
+                if (confirm('确定要删除这条记录吗？')) {
+                    appData.records = appData.records.filter(r => r.id !== recordId);
+                    saveData();
+                    hideCheckinModal();
+                    showToast('记录已删除');
+                }
+            };
+            
+            // 导出导入
+            document.getElementById('exportBtn').onclick = showExportModal;
+            document.getElementById('importBtn').onclick = showImportModal;
+            
+            document.getElementById('copyExportBtn').onclick = () => {
+                document.getElementById('exportData').select();
+                document.execCommand('copy');
+                showToast('已复制到剪贴板');
+            };
+            
+            document.getElementById('confirmImportBtn').onclick = () => {
+                const dataStr = document.getElementById('importData').value.trim();
+                try {
+                    const data = JSON.parse(dataStr);
+                    if (data.children && data.courses && data.records) {
+                        if (confirm('导入将覆盖现有数据，确定继续吗？')) {
+                            appData = data;
+                            appData.courses.forEach(c => {
+                                if (!c.schedule) {
+                                    c.schedule = { enabled: false, weekdays: [], startTime: '09:00', endTime: '10:30', location: '' };
+                                }
+                            });
+                            if (!appData.currentChildId && appData.children.length > 0) {
+                                appData.currentChildId = appData.children[0].id;
+                            }
+                            saveData();
+                            hideIEModal();
+                            showToast('导入成功');
+                        }
+                    } else {
+                        throw new Error('Invalid format');
+                    }
+                } catch (e) {
+                    document.getElementById('importError').classList.remove('hidden');
+                }
+            };
+            
+            // 每分钟刷新一次，更新倒计时
+            setInterval(() => {
+                if (!document.getElementById('mainContent').classList.contains('hidden')) {
+                    renderUpcoming();
+                }
+            }, 60000);
+        });
+    </script>
+</body>
+</html>
