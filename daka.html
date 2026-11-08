@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🎓 培训班课时打卡</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow-x:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:linear-gradient(180deg,#faf5ff 0%,#fdf2f8 50%,#eff6ff 100%);font-size:14px;color:#1f2937;padding-bottom:80px;}
+button{border:none;background:none;font-family:inherit;font-size:inherit;cursor:pointer;color:inherit;}
+input,select{font-family:inherit;font-size:14px;color:inherit;outline:none;}
+@keyframes breathe{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5);}50%{box-shadow:0 0 0 8px rgba(239,68,68,0);}}
+.breathe{animation:breathe 1.6s ease-in-out infinite;}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.slide-up{animation:slideUp .28s ease-out;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.fade-in{animation:fadeIn .2s ease-out;}
+.no-scrollbar::-webkit-scrollbar{display:none;}
+.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none;}
+
+.container{max-width:480px;margin:0 auto;position:relative;min-height:100vh;}
+.header{padding:16px 16px 12px;}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.header-title{font-size:20px;font-weight:bold;color:#1f2937;}
+.icon-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.85);font-size:18px;display:flex;align-items:center;justify-content:center;color:#4b5563;flex-shrink:0;}
+.kid-switcher{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;}
+.kid-pill{flex-shrink:0;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:500;background:white;color:#4b5563;border:1px solid #f3f4f6;}
+.kid-pill.on{background:#7c3aed;color:white;border-color:#7c3aed;box-shadow:0 2px 8px rgba(124,58,237,.3);}
+.add-kid{flex-shrink:0;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.85);border:1px dashed #c4b5fd;color:#8b5cf6;font-size:20px;display:flex;align-items:center;justify-content:center;}
+
+.page{padding:0 16px 24px;}
+.card{background:white;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:16px;}
+.h2{font-size:15px;font-weight:bold;color:#1f2937;margin-bottom:12px;}
+.muted{color:#6b7280;font-size:14px;}
+.greet{margin:4px 0 16px;}
+.greet-sub{font-size:14px;color:#6b7280;}
+.greet-name{font-size:18px;font-weight:bold;color:#1f2937;margin-top:2px;}
+
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+.sg-item{background:white;border-radius:12px;padding:10px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+.sg-num{font-size:20px;font-weight:bold;}
+.sg-lbl{font-size:11px;color:#6b7280;margin-top:2px;}
+
+.ti{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;margin-bottom:10px;}
+.ti.urgent{background:#fef2f2;border:1px solid #fecaca;}
+.ti.normal{background:#f9fafb;}
+.ti-time{width:44px;height:44px;border-radius:12px;color:white;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;}
+.ti-info{flex:1;min-width:0;}
+.ti-name{font-weight:600;color:#1f2937;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ti-meta{font-size:12px;color:#6b7280;margin-top:2px;}
+.cd{color:#ef4444;font-weight:600;}
+.btn-mini{flex-shrink:0;padding:7px 14px;border-radius:20px;color:white;font-size:13px;font-weight:500;}
+
+.cc{border:1px solid #f3f4f6;border-radius:12px;padding:12px;margin-bottom:12px;background:white;}
+.cc-head{display:flex;gap:12px;}
+.cc-ico{width:44px;height:44px;border-radius:12px;color:white;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0;}
+.cc-info{flex:1;min-width:0;}
+.cc-name{font-weight:600;color:#1f2937;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.share-tag{font-size:11px;padding:2px 6px;border-radius:4px;background:#f3e8ff;color:#7c3aed;margin-left:4px;}
+.cc-time{font-size:12px;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.cc-stats{display:flex;gap:12px;font-size:12px;color:#6b7280;margin-top:8px;flex-wrap:wrap;}
+.pbar{height:6px;background:#f3f4f6;border-radius:3px;overflow:hidden;margin-top:8px;}
+.pbar-fill{height:100%;border-radius:3px;transition:width .3s;}
+.cc-btns{display:flex;gap:8px;margin-top:12px;}
+.b-ck{flex:1;padding:7px 0;border-radius:8px;color:white;font-size:13px;font-weight:500;}
+.b-lv{flex:1;padding:7px 0;border-radius:8px;background:#fff7ed;color:#ea580c;font-size:13px;font-weight:500;}
+.b-dt{padding:7px 14px;border-radius:8px;background:#f9fafb;color:#4b5563;font-size:13px;}
+
+.empty{padding:40px 16px;text-align:center;}
+.empty-ico{font-size:48px;margin-bottom:12px;}
+.empty-txt{color:#9ca3af;font-size:14px;margin-bottom:16px;line-height:1.6;}
+.b-prim{padding:10px 22px;border-radius:20px;background:linear-gradient(90deg,#8b5cf6,#ec4899);color:white;font-size:14px;font-weight:500;display:inline-block;}
+
+.nav-wrap{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #f3f4f6;z-index:150;}
+.nav-inner{max-width:480px;margin:0 auto;display:flex;align-items:flex-end;height:60px;}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;background:none;border:none;cursor:pointer;color:inherit;}
+.nb-i{font-size:20px;line-height:1;}
+.nb-t{font-size:11px;color:#9ca3af;line-height:1;}
+.nb.on .nb-t{color:#7c3aed;font-weight:bold;}
+.nb-add .nb-i{font-size:28px;color:#7c3aed;font-weight:bold;line-height:1;margin-bottom:2px;}
+.nb-add .nb-t{color:#7c3aed;font-weight:600;}
+
+/* 弹窗 */
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:80;display:flex;align-items:flex-end;justify-content:center;}
+.modal{width:100%;max-width:480px;background:white;border-radius:20px 20px 0 0;padding:20px;max-height:88vh;overflow-y:auto;animation:slideUp .28s ease-out;padding-bottom:40px;}
+.m-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.m-title{font-size:17px;font-weight:bold;color:#1f2937;}
+.m-close{width:32px;height:32px;border-radius:50%;background:#f3f4f6;color:#6b7280;font-size:18px;display:flex;align-items:center;justify-content:center;}
+.fl{margin-bottom:14px;}
+.fl-l{display:block;font-size:13px;color:#4b5563;margin-bottom:6px;font-weight:500;}
+.in{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa;}
+.in:focus{border-color:#a78bfa;background:white;}
+.sel{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa;}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.tgg{display:flex;align-items:center;gap:8px;padding:10px;background:#f9fafb;border-radius:10px;cursor:pointer;}
+.tgg input{margin:0;}
+.b-save{width:100%;padding:13px;border-radius:12px;color:white;font-weight:600;font-size:15px;background:linear-gradient(90deg,#8b5cf6,#ec4899);margin-top:10px;}
+
+.kid-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px;}
+.kid-op{width:44px;height:44px;border-radius:50%;background:#f3f4f6;font-size:22px;display:flex;align-items:center;justify-content:center;border:2px solid transparent;}
+.kid-op.on{background:#ede9fe;border-color:#8b5cf6;}
+
+/* === 周课表样式：7天并排填 === */
+.week-grid{margin-top:8px;display:flex;flex-direction:column;gap:8px;}
+.wk-day{border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;background:#fafafa;transition:all .2s;}
+.wk-day.on{background:white;border-color:#c4b5fd;box-shadow:0 2px 8px rgba(139,92,246,.08);}
+.wk-head{display:flex;align-items:center;padding:10px 12px;gap:10px;}
+.wk-switch{position:relative;width:40px;height:22px;border-radius:11px;background:#d1d5db;flex-shrink:0;cursor:pointer;transition:background .2s;}
+.wk-switch::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:white;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s;}
+.wk-switch.on{background:#8b5cf6;}
+.wk-switch.on::after{transform:translateX(18px);}
+.wk-switch input{position:absolute;opacity:0;width:0;height:0;}
+.wk-label{font-size:14px;font-weight:600;color:#9ca3af;}
+.wk-day.on .wk-label{color:#1f2937;}
+.wk-short{font-size:11px;color:#9ca3af;margin-left:4px;font-weight:normal;}
+.wk-day.on .wk-short{color:#7c3aed;}
+.wk-body{padding:0 12px 12px;display:none;}
+.wk-day.on .wk-body{display:block;}
+.wk-slot{background:#faf5ff;border:1px dashed #c4b5fd;border-radius:10px;padding:10px;margin-bottom:8px;position:relative;}
+.wk-slot:last-child{margin-bottom:0;}
+.wk-time-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;align-items:center;}
+.wk-time-row label{font-size:11px;color:#6b7280;grid-column:1/-1;margin-bottom:4px;}
+.wk-time-row input{padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;background:white;font-size:13px;}
+.wk-place{width:100%;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;background:white;font-size:13px;}
+.wk-slot-del{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:#fee2e2;color:#ef4444;font-size:12px;display:flex;align-items:center;justify-content:center;}
+.wk-add-slot{width:100%;padding:8px;border:1px dashed #c4b5fd;border-radius:10px;color:#8b5cf6;font-size:12px;font-weight:500;background:white;margin-top:6px;}
+.wk-hint{font-size:11px;color:#9ca3af;text-align:center;padding:8px 0 0;margin-top:6px;}
+
+/* Toast */
+#toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.75);color:white;padding:10px 20px;border-radius:20px;font-size:14px;z-index:200;pointer-events:none;display:none;}
+
+/* 周课表 */
+.dg{background:white;border-radius:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;}
+.dg-h{padding:10px 14px;font-weight:bold;font-size:13px;color:#6b7280;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:8px;}
+.dg-w{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.dg-h.today{background:#faf5ff;color:#7c3aed;}
+.dg-h.today .dg-w{background:#7c3aed;color:white;}
+.si{display:flex;align-items:center;gap:10px;padding:10px 14px;}
+.si+.si{border-top:1px solid #f9fafb;}
+.si-ico{width:36px;height:36px;border-radius:8px;color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;}
+.si-info{flex:1;min-width:0;}
+.si-nm{font-weight:600;color:#1f2937;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.si-tm{font-size:11px;color:#6b7280;margin-top:2px;}
+.si-st{font-size:11px;flex-shrink:0;padding:3px 8px;border-radius:10px;}
+.si-st.check{color:#059669;background:#d1fae5;}
+.si-st.leave{color:#f97316;background:#ffedd5;}
+.si-st.pending{color:#9ca3af;background:#f3f4f6;}
+.b-wk{padding:5px 10px;border-radius:16px;color:white;font-size:12px;}
+
+/* 记录 */
+.rg-date{font-size:12px;color:#6b7280;margin:0 0 6px 4px;}
+.rg{background:white;border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden;margin-bottom:12px;}
+.ri{display:flex;align-items:center;gap:10px;padding:12px;}
+.ri+.ri{border-top:1px solid #f9fafb;}
+.ri-ico{width:34px;height:34px;border-radius:8px;color:white;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.ri-info{flex:1;min-width:0;}
+.ri-nm{font-size:13px;font-weight:600;color:#1f2937;}
+.ri-tm{font-size:11px;color:#6b7280;margin-top:2px;}
+.ri-x{color:#d1d5db;font-size:18px;padding:0 8px;}
+
+/* 统计 */
+.big{background:linear-gradient(135deg,#8b5cf6,#ec4899);border-radius:16px;padding:20px;color:white;box-shadow:0 4px 12px rgba(139,92,246,.25);margin-bottom:16px;}
+.big-lbl{font-size:14px;opacity:.85;}
+.big-num{font-size:32px;font-weight:bold;margin-top:4px;}
+.bp{height:8px;background:rgba(255,255,255,.25);border-radius:4px;overflow:hidden;margin-top:12px;}
+.bp-f{height:100%;background:white;border-radius:4px;}
+.big-row{display:flex;justify-content:space-between;margin-top:8px;font-size:13px;opacity:.9;}
+.sg3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.sg3-i{background:white;border-radius:12px;padding:12px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+.sg3-n{font-size:22px;font-weight:bold;}
+.sg3-l{font-size:11px;color:#6b7280;margin-top:2px;}
+.chart{background:white;border-radius:16px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:16px;}
+.cwrap{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;height:110px;padding:0 4px;}
+.cbw{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.cb{width:100%;background:linear-gradient(to top,#8b5cf6,#f472b6);border-radius:4px 4px 0 0;min-height:2px;}
+.cd2{font-size:10px;color:#6b7280;}
+.cp-i{margin-bottom:12px;}
+.cp-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.cp-n{font-size:13px;color:#374151;}
+.cp-c{font-size:11px;color:#6b7280;}
+
+.dh{padding:16px;border-radius:16px;margin-bottom:16px;}
+.dh-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.dh-ico{width:48px;height:48px;border-radius:12px;color:white;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;flex-shrink:0;}
+.dh-nm{font-weight:bold;color:#1f2937;font-size:17px;}
+.dh-sub{font-size:12px;color:#6b7280;margin-top:2px;}
+.di-block{background:#f9fafb;border-radius:12px;padding:12px;margin-bottom:16px;font-size:14px;}
+.di-i{display:flex;justify-content:space-between;margin-bottom:8px;align-items:flex-start;}
+.di-i:last-child{margin-bottom:0;}
+.di-l{color:#6b7280;}
+.sched-list{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
+.sl-i{display:flex;align-items:center;gap:8px;color:#1f2937;}
+.sl-w{padding:2px 8px;border-radius:4px;color:white;font-size:11px;}
+.rmini{max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.rm-i{display:flex;align-items:center;justify-content:space-between;padding:8px;background:#f9fafb;border-radius:8px;font-size:12px;}
+
+.setting-i{width:100%;padding:14px;border-radius:12px;text-align:left;font-weight:500;display:flex;align-items:center;justify-content:space-between;font-size:14px;margin-bottom:10px;}
+.setting-i.purp{background:#f5f3ff;color:#6d28d9;}
+.setting-i.blue{background:#eff6ff;color:#1d4ed8;}
+.setting-i.red{background:#fef2f2;color:#dc2626;}
+.setting-d{font-size:12px;font-weight:normal;margin-top:2px;display:block;opacity:.8;}
+.setting-ar{font-size:16px;}
+.set-foot{font-size:12px;color:#9ca3af;text-align:center;margin-top:20px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="toast"></div>
+<script>
+var KEY='course_tracker_v3',WK=['周日','周一','周二','周三','周四','周五','周六'],WSHORT=['日','一','二','三','四','五','六'],
+AV=['👦','👧','🧒','👶','🐻','🐰','🦊','🐱','🐶','🐼'],
+CL=[{n:'紫',m:'#8b5cf6',l:'#ede9fe'},{n:'粉',m:'#ec4899',l:'#fce7f3'},{n:'蓝',m:'#3b82f6',l:'#dbeafe'},{n:'绿',m:'#10b981',l:'#d1fae5'},{n:'橙',m:'#f97316',l:'#ffedd5'},{n:'青',m:'#06b6d4',l:'#cffafe'}];
+var S={kids:[],courses:[],records:[],curKid:null,curTab:'home'};
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function col(name){for(var i=0;i<CL.length;i++)if(CL[i].n===name)return CL[i];return CL[0];}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function load(){
+  var r;try{r=localStorage.getItem(KEY);}catch(e){r=null;}
+  if(r){try{S=JSON.parse(r);}catch(e){}}
+  if(!S.kids)S.kids=[];if(!S.courses)S.courses=[];if(!S.records)S.records=[];
+  for(var i=0;i<S.courses.length;i++){var c=S.courses[i];
+    if(!c.schedules)c.schedules=(c.day!=null&&c.startTime)?[{id:uid(),day:c.day,start:c.startTime,end:c.endTime||'',place:c.place||''}]:[];
+    if(c.totalHours!=null&&c.total==null)c.total=c.totalHours;
+    if(c.costPer!=null&&c.cost==null)c.cost=c.costPer;
+    if(c.cost==null)c.cost=1;
+  }
+  if(!S.kids.length)S={kids:[{id:'k1',name:'大宝',avatar:'👦'}],courses:[],records:[],curKid:'k1',curTab:'home'};
+  if(!S.curKid){var found=false;for(var j=0;j<S.kids.length;j++)if(S.kids[j].id===S.curKid){found=true;break;}if(!found)S.curKid=S.kids[0].id;}
+}
+function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function pad(n){n=String(n);return n.length<2?'0'+n:n;}
+function fmtD(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function getKid(){for(var i=0;i<S.kids.length;i++)if(S.kids[i].id===S.curKid)return S.kids[i];return S.kids[0];}
+function getCs(kidId){var r=[];for(var i=0;i<S.courses.length;i++)if(S.courses[i].kidId===kidId||S.courses[i].shared)r.push(S.courses[i]);return r;}
+function usedH(c){
+  var n=0;
+  for(var i=0;i<S.records.length;i++){var r=S.records[i];
+    if(r.cid===c.id){if(c.shared){if(!r.leave||c.leaveCost)n++;}else if(r.kid===c.kidId){if(!r.leave||c.leaveCost)n++;}}}
+  return n*(c.cost||1);
+}
+function lvN(c,kidId){var n=0;for(var i=0;i<S.records.length;i++){var r=S.records[i];if(r.cid===c.id&&r.leave){if(c.shared||r.kid===kidId)n++;}}return n;}
+function hasRec(cid,dt,kidId){for(var i=0;i<S.records.length;i++){var r=S.records[i];if(r.cid===cid&&r.date===dt&&r.kid===kidId)return r;}return null;}
+function wStart(d){d=d?new Date(d):new Date();var r=new Date(d.getFullYear(),d.getMonth(),d.getDate());var dy=r.getDay(),diff=(dy===0?-6:1-dy);r.setDate(r.getDate()+diff);return r;}
+function getWItems(cid,kidId){var c=null;for(var i=0;i<S.courses.length;i++)if(S.courses[i].id===cid){c=S.courses[i];break;}if(!c||!c.schedules||!c.schedules.length)return[];
+  var st=wStart(),list=[];
+  for(var i=0;i<7;i++){var d=new Date(st);d.setDate(st.getDate()+i);var dy=d.getDay();
+    for(var j=0;j<c.schedules.length;j++){var s=c.schedules[j];if(Number(s.day)===dy)list.push({c:c,s:s,date:fmtD(d),dobj:new Date(d),kid:kidId});}}
+  list.sort(function(a,b){if(a.date!==b.date)return a.date<b.date?-1:1;if((a.s.start||'')!==(b.s.start||''))return (a.s.start||'')<(b.s.start||'')?-1:1;return 0;});return list;}
+function allW(){var k=getKid();var a=[];var cs=getCs(k.id);for(var i=0;i<cs.length;i++){a=a.concat(getWItems(cs[i].id,k.id));}
+  a.sort(function(a,b){if(a.date!==b.date)return a.date<b.date?-1:1;if((a.s.start||'')!==(b.s.start||''))return (a.s.start||'')<(b.s.start||'')?-1:1;return 0;});return a;}
+function sTxt(c){if(!c.schedules||!c.schedules.length)return '未设置时间';
+  var bd={};var arr=c.schedules.slice();arr.sort(function(a,b){return (a.start||'')<(b.start||'')?-1:1;});
+  for(var i=0;i<arr.length;i++){var s=arr[i];if(!bd[s.day])bd[s.day]=[];bd[s.day].push(s);}
+  var out=[];
+  for(var d=1;d<=6;d++){if(bd[d]){var times=[];for(var k=0;k<bd[d].length;k++){var ss=bd[d][k];times.push(ss.start+(ss.end?'-'+ss.end:''));}out.push(WK[d]+' '+times.join('、'));}}
+  if(bd[0]){var times0=[];for(var k2=0;k2<bd[0].length;k2++){var ss0=bd[0][k2];times0.push(ss0.start+(ss0.end?'-'+ss0.end:''));}out.push('周日 '+times0.join('、'));}
+  return out.join('；');
+}
+function cdTxt(tstr){if(!tstr)return '';var now=new Date();var p=tstr.split(':');var h=parseInt(p[0]),m=parseInt(p[1]);var t=new Date();t.setHours(h,m,0,0);var diff=t-now;if(diff<0)return '已开始';var mins=Math.floor(diff/60000);if(mins<60)return mins+'分钟后';return Math.floor(mins/60)+'小时'+mins%60+'分钟后';}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},1600);}
+function closeModal(){document.getElementById('root').setAttribute('data-modal','');render();}
+
+function switchKid(id){if(S.curKid===id){toast('已选中当前孩子');return;}S.curKid=id;S.curTab='home';save();render();}
+function switchTab(t){var names={home:'首页',schedule:'课表',records:'记录',stats:'统计'};if(S.curTab===t){toast('已在'+names[t]);return;}S.curTab=t;save();render();}
+
+function headerHTML(){var cur=S.curKid,k=getKid(),h='';
+h+='<div class="header"><div class="header-top"><h1 class="header-title">🎓 培训班课时打卡</h1>';
+h+='<button class="icon-btn" onclick="showSettings()">⚙️</button></div>';
+h+='<div class="kid-switcher no-scrollbar">';
+for(var i=0;i<S.kids.length;i++){var kk=S.kids[i];h+='<button class="kid-pill '+(kk.id===cur?'on':'')+'" onclick="switchKid(\''+kk.id+'\')">'+kk.avatar+' '+esc(kk.name)+'</button>';}
+h+='<button class="add-kid" onclick="showAddKid()">+</button>';
+h+='</div></div>';return h;}
+
+function navHTML(){var h='';h+='<div class="nav-wrap"><div class="nav-inner">';
+var tabs=[{id:'home',i:'🏠',t:'首页'},{id:'schedule',i:'📅',t:'课表'}];
+for(var i=0;i<tabs.length;i++){var tt=tabs[i];h+='<button class="nb '+(S.curTab===tt.id?'on':'')+'" onclick="switchTab(\''+tt.id+'\')"><span class="nb-i">'+tt.i+'</span><span class="nb-t">'+tt.t+'</span></button>';}
+h+='<button class="nb nb-add" onclick="showAddCourse()"><span class="nb-i">+</span><span class="nb-t">加课</span></button>';
+var tabs2=[{id:'records',i:'📝',t:'记录'},{id:'stats',i:'📊',t:'统计'}];
+for(var j=0;j<tabs2.length;j++){var tt2=tabs2[j];h+='<button class="nb '+(S.curTab===tt2.id?'on':'')+'" onclick="switchTab(\''+tt2.id+'\')"><span class="nb-i">'+tt2.i+'</span><span class="nb-t">'+tt2.t+'</span></button>';}
+h+='</div></div>';return h;}
+
+function homeHTML(){var k=getKid(),cs=getCs(k.id),td=today(),now=new Date(),wk=allW();
+var todayL=wk.filter(function(x){return x.date===td;});
+var upcoming=[];for(var i=0;i<todayL.length;i++)if(!hasRec(todayL[i].c.id,todayL[i].date,k.id))upcoming.push(todayL[i]);
+var soon=[];for(var i=0;i<upcoming.length;i++){var x=upcoming[i];if(!x.s.start)continue;var p=x.s.start.split(':');var hh=parseInt(p[0]),m=parseInt(p[1]);var t=new Date();t.setHours(hh,m,0,0);if((t-now)>-3600000&&(t-now)<4*3600000)soon.push(x);}
+var tc=cs.length,tl=0,tm=0,ta=0;
+for(var i=0;i<cs.length;i++){var c=cs[i];tl+=Math.max(0,(c.total||0)-usedH(c));var rs;if(c.shared){rs=[];for(var a=0;a<S.records.length;a++)if(S.records[a].cid===c.id)rs.push(S.records[a]);}else{rs=[];for(var b=0;b<S.records.length;b++)if(S.records[b].cid===c.id&&S.records[b].kid===k.id)rs.push(S.records[b]);}
+for(var j=0;j<rs.length;j++){var r=rs[j];var d=new Date(r.date);if(d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth())tm++;if(!r.leave)ta++;}}
+var h='<div class="page">';
+h+='<div class="greet"><p class="greet-sub">'+now.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric',weekday:'long'})+'</p><p class="greet-name">'+k.avatar+' '+esc(k.name)+' 的课程</p></div>';
+if(upcoming.length>0){
+h+='<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><h2 class="h2" style="margin:0;">⏰ 今天要上的课</h2><span style="font-size:12px;color:#9ca3af;">'+upcoming.length+'节</span></div>';
+for(var i=0;i<upcoming.length;i++){var x=upcoming[i];var cc=col(x.c.color);var isS=soon.indexOf(x)>=0;
+h+='<div class="ti '+(isS?'urgent breathe':'normal')+'">';
+h+='<div class="ti-time" style="background:'+cc.m+'">'+(x.s.start?x.s.start.slice(0,5):'📚')+'</div>';
+h+='<div class="ti-info"><div class="ti-name">'+esc(x.c.name)+(x.c.shared?'<span class="share-tag">👨‍👩‍👧共享</span>':'')+'</div>';
+h+='<div class="ti-meta">'+(x.s.end?x.s.start+'-'+x.s.end:x.s.start||'')+(x.s.place?' · '+esc(x.s.place):'')+(isS&&x.s.start?' · <span class="cd">'+cdTxt(x.s.start)+'</span>':'')+'</div></div>';
+h+='<button class="btn-mini" style="background:'+cc.m+'" onclick="doCheck(\''+x.c.id+'\',\''+x.date+'\',\''+k.id+'\',false)">签到</button>';
+h+='</div>';}h+='</div>';
+}else{
+h+='<div class="card" style="text-align:center;padding:24px;"><div style="font-size:36px;margin-bottom:8px;">🌤️</div><p class="muted" style="margin:0;">今天没有安排课程，好好休息吧~</p></div>';}
+h+='<div class="sgrid">';
+h+='<div class="sg-item"><p class="sg-num" style="color:#7c3aed;">'+tc+'</p><p class="sg-lbl">课程数</p></div>';
+h+='<div class="sg-item"><p class="sg-num" style="color:#ec4899;">'+tl+'</p><p class="sg-lbl">剩余课时</p></div>';
+h+='<div class="sg-item"><p class="sg-num" style="color:#3b82f6;">'+tm+'</p><p class="sg-lbl">本月打卡</p></div>';
+h+='<div class="sg-item"><p class="sg-num" style="color:#10b981;">'+ta+'</p><p class="sg-lbl">累计上课</p></div>';
+h+='</div>';
+var fut=[];var wks=allW();for(var i=0;i<wks.length;i++)if(wks[i].date>=td){fut.push(wks[i]);if(fut.length>=3)break;}
+if(fut.length>0){
+h+='<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"><h2 class="h2" style="margin:0;">📆 本周即将上</h2><button onclick="switchTab(\'schedule\')" style="font-size:12px;color:#7c3aed;padding:0;">查看全部 →</button></div>';
+for(var i=0;i<fut.length;i++){var x=fut[i];var cc=col(x.c.color);var rec=hasRec(x.c.id,x.date,k.id);
+h+='<div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;'+(x.date===td?'background:#faf5ff;':'background:#f9fafb;')+'margin-bottom:6px;">';
+h+='<div style="width:34px;height:34px;border-radius:8px;background:'+cc.m+';color:white;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">'+WSHORT[x.dobj.getDay()]+'</div>';
+h+='<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:#1f2937;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(x.c.name)+(x.s.place?' · '+esc(x.s.place):'')+'</div>';
+h+='<div style="font-size:11px;color:#6b7280;margin-top:2px;">'+(x.s.start||'')+(x.s.end?'-'+x.s.end:'')+' · 剩'+Math.max(0,(x.c.total||0)-usedH(x.c))+'课时</div></div>';
+if(rec)h+='<span style="font-size:12px;color:'+(rec.leave?'#f97316':'#059669')+';">'+(rec.leave?'已请假':'✓ 已打卡')+'</span>';
+else h+='<span style="font-size:12px;color:#9ca3af;">待上课</span>';
+h+='</div>';}h+='</div>';}
+var lowC=[];for(var i=0;i<cs.length;i++){var c=cs[i];if((c.total||0)-usedH(c)<=3)lowC.push(c);}
+if(lowC.length>0){
+h+='<div class="card"><h2 class="h2" style="color:#ef4444;">⚠️ 课时不足提醒</h2>';
+for(var i=0;i<lowC.length;i++){var c=lowC[i];var cc=col(c.color);
+h+='<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fef2f2;border-radius:8px;margin-bottom:6px;">';
+h+='<div style="width:34px;height:34px;border-radius:8px;background:'+cc.m+';color:white;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">📚</div>';
+h+='<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:#1f2937;">'+esc(c.name)+(c.shared?' 👨‍👩‍👧':'')+'</div>';
+h+='<div style="font-size:11px;color:#ef4444;margin-top:2px;">剩余'+Math.max(0,(c.total||0)-usedH(c))+'课时，请及时续费</div></div>';
+h+='<button style="padding:6px 12px;border-radius:14px;background:#ef4444;color:white;font-size:12px;" onclick="showEditCourse(\''+c.id+'\')">续费</button>';
+h+='</div>';}h+='</div>';}
+h+='</div>';return h;}
+
+function csHTML(list,kidId){
+if(!list.length)return '<div class="empty"><div class="empty-ico">📚</div><p class="empty-txt">还没有添加课程，开始记录吧~</p><button class="b-prim" onclick="showAddCourse()">+ 添加第一门课</button></div>';
+var h='';for(var i=0;i<list.length;i++){var c=list[i];var cc=col(c.color);var u=usedH(c),tot=c.total||0,rem=Math.max(0,tot-u),pct=tot?Math.min(100,Math.round(u/tot*100)):0;
+h+='<div class="cc" onclick="showCourseDetail(\''+c.id+'\')">';
+h+='<div class="cc-head"><div class="cc-ico" style="background:'+cc.m+'">📚</div>';
+h+='<div class="cc-info"><div class="cc-name">'+esc(c.name)+(c.shared?'<span class="share-tag">👨‍👩‍👧共享</span>':'')+'</div>';
+h+='<div class="cc-time">'+sTxt(c)+(c.teacher?' · '+esc(c.teacher):'')+'</div></div></div>';
+h+='<div class="cc-stats"><span>已上<b style="color:#7c3aed;">'+u+'</b></span><span>总<b>'+tot+'</b></span><span>剩<b style="color:'+(rem<=3?'#ef4444':'#10b981')+';">'+rem+'</b></span><span>请假<b>'+lvN(c,kidId)+'</b></span></div>';
+h+='<div class="pbar"><div class="pbar-fill" style="width:'+pct+'%;background:'+(rem<=3?'#ef4444':cc.m)+';"></div></div>';
+h+='<div class="cc-btns"><button class="b-ck" style="background:'+cc.m+'" onclick="event.stopPropagation();doCheck(\''+c.id+'\',\'\',\''+kidId+'\',false)">✓ 打卡</button>';
+h+='<button class="b-lv" onclick="event.stopPropagation();doCheck(\''+c.id+'\',\'\',\''+kidId+'\',true)">🏖️ 请假</button>';
+h+='<button class="b-dt" onclick="event.stopPropagation();showCourseDetail(\''+c.id+'\')">详情</button></div>';
+h+='</div>';}return h;}
+
+function schedHTML(){var k=getKid(),wk=allW(),td=today(),now=new Date();
+var byD={};for(var i=0;i<7;i++){var d=new Date(wStart());d.setDate(wStart().getDate()+i);byD[fmtD(d)]=[];}
+for(var i=0;i<wk.length;i++)byD[wk[i].date].push(wk[i]);
+var h='<div class="page"><div class="card" style="background:linear-gradient(135deg,#8b5cf6,#ec4899);color:white;border-radius:16px;padding:16px;margin-bottom:16px;"><div style="font-size:14px;opacity:.85;margin-bottom:8px;">本周课表（共'+wk.length+'节）</div><div style="font-size:13px;opacity:.9;">点击任意课程可签到、请假或查看详情</div></div>';
+var dates=Object.keys(byD);
+var hasAny=false;for(var i=0;i<dates.length;i++)if(byD[dates[i]].length)hasAny=true;
+if(!hasAny)h+='<div class="card" style="text-align:center;padding:30px;"><div style="font-size:40px;margin-bottom:10px;">📅</div><p class="muted">本周暂无课程安排<br>点击下方"+ 加课"开始记录</p></div>';
+for(var i=0;i<dates.length;i++){var dt=dates[i],items=byD[dt],dobj=new Date(dt),isT=dt===td;if(!items.length)continue;
+h+='<div class="dg">';
+h+='<div class="dg-h '+(isT?'today':'')+'"><div class="dg-w">'+WSHORT[dobj.getDay()]+'</div><span>'+(dobj.getMonth()+1)+'月'+dobj.getDate()+'日 '+WK[dobj.getDay()]+(isT?' · 今天':'')+'</span><span style="margin-left:auto;font-size:12px;opacity:.7;">'+items.length+'节</span></div>';
+for(var j=0;j<items.length;j++){var x=items[j];var cc=col(x.c.color);var rec=hasRec(x.c.id,dt,k.id);
+h+='<div class="si">';
+h+='<div class="si-ico" style="background:'+cc.m+'">'+(x.s.start?x.s.start.slice(0,5):'📚')+'</div>';
+h+='<div class="si-info"><div class="si-nm">'+esc(x.c.name)+(x.c.shared?' 👨‍👩‍👧':'')+'</div>';
+h+='<div class="si-tm">'+(x.s.end?x.s.start+'-'+x.s.end:x.s.start||'')+(x.s.place?' · '+esc(x.s.place):'')+(x.c.teacher?' · '+esc(x.c.teacher):'')+'</div></div>';
+if(rec){h+='<span class="si-st '+(rec.leave?'leave':'check')+'">'+(rec.leave?'已请假':'已打卡')+'</span>';}
+else if(dt<td){h+='<span class="si-st pending">未打卡</span>';}
+else{h+='<button class="b-wk" style="background:'+cc.m+'" onclick="doCheck(\''+x.c.id+'\',\''+dt+'\',\''+k.id+'\',false)">签到</button>';}
+h+='</div>';}h+='</div>';}
+var cs=getCs(k.id);var noSch=[];for(var i=0;i<cs.length;i++)if(!cs[i].schedules||!cs[i].schedules.length)noSch.push(cs[i]);
+if(noSch.length){h+='<div class="card"><h2 class="h2">未设置固定时间</h2>';
+for(var i=0;i<noSch.length;i++){var c=noSch[i],cc=col(c.color);
+h+='<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff7ed;border-radius:8px;margin-bottom:6px;">';
+h+='<div style="width:34px;height:34px;border-radius:8px;background:'+cc.m+';color:white;display:flex;align-items:center;justify-content:center;font-size:15px;">📚</div>';
+h+='<div style="flex:1;font-size:13px;font-weight:600;">'+esc(c.name)+'</div>';
+h+='<button style="padding:6px 12px;border-radius:14px;background:#f97316;color:white;font-size:12px;" onclick="showEditCourse(\''+c.id+'\')">设置时间</button>';
+h+='</div>';}h+='</div>';}h+='</div>';return h;}
+
+function recsHTML(){var k=getKid(),cs=getCs(k.id),td=today();
+var byDate={};var rlist=[];for(var i=0;i<S.records.length;i++){var r=S.records[i];var found=false;for(var j=0;j<cs.length;j++)if(cs[j].id===r.cid){found=true;break;}if(found)rlist.push(r);}
+rlist.sort(function(a,b){return a.date<b.date?1:-1;});
+for(var i=0;i<rlist.length;i++){var r=rlist[i];if(!byDate[r.date])byDate[r.date]=[];byDate[r.date].push(r);}
+var h='<div class="page">';
+if(!rlist.length){h+='<div class="empty"><div class="empty-ico">📝</div><p class="empty-txt">还没有打卡记录<br>打卡课后会在这里显示</p></div>';}else{
+var keys=Object.keys(byDate);for(var i=0;i<keys.length;i++){var dt=keys[i],items=byDate[dt],dobj=new Date(dt);
+var lbl=(dobj.getMonth()+1)+'月'+dobj.getDate()+'日 '+WK[dobj.getDay()];if(dt===td)lbl='今天 · '+lbl;
+h+='<p class="rg-date">'+lbl+' · '+items.length+'条</p><div class="rg">';
+for(var j=0;j<items.length;j++){var r=items[j];var c=null;for(var a=0;a<S.courses.length;a++)if(S.courses[a].id===r.cid){c=S.courses[a];break;}if(!c)continue;var cc=col(c.color);
+var knm='';for(var b=0;b<S.kids.length;b++)if(S.kids[b].id===r.kid){knm=S.kids[b].avatar+' '+S.kids[b].name;break;}
+h+='<div class="ri"><div class="ri-ico" style="background:'+cc.m+'">'+(r.leave?'🏖️':'✓')+'</div>';
+h+='<div class="ri-info"><div class="ri-nm">'+esc(c.name)+(c.shared?' <span style="color:#7c3aed;font-size:11px;">· '+knm+'</span>':'')+'</div>';
+h+='<div class="ri-tm">'+(r.leave?'请假':'上课打卡')+(r.time?' · '+r.time:'')+(r.note?' · '+esc(r.note):'')+'</div></div>';
+h+='<button class="ri-x" onclick="delRec(\''+r.id+'\')" title="删除">✕</button>';
+h+='</div>';}h+='</div>';}}
+h+='<div class="card"><h2 class="h2">📋 快速打卡</h2>';
+if(!cs.length){h+='<p class="muted" style="text-align:center;padding:10px 0;">还没有课程</p>';}
+for(var i=0;i<cs.length;i++){var c=cs[i];var cc=col(c.color);
+h+='<div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;margin-bottom:6px;background:#f9fafb;">';
+h+='<div style="width:34px;height:34px;border-radius:8px;background:'+cc.m+';color:white;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">📚</div>';
+h+='<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:#1f2937;">'+esc(c.name)+'</div>';
+h+='<div style="font-size:11px;color:#6b7280;">已上'+usedH(c)+'/'+(c.total||0)+'课时 · 剩'+Math.max(0,(c.total||0)-usedH(c))+'</div></div>';
+h+='<button style="padding:6px 12px;border-radius:14px;background:'+cc.m+';color:white;font-size:12px;" onclick="doCheck(\''+c.id+'\',\'\',\''+k.id+'\',false)">打卡</button>';
+h+='</div>';}h+='</div></div>';return h;}
+
+function statsHTML(){var k=getKid(),cs=getCs(k.id),now=new Date();
+var totalC=0,totalU=0,totalLv=0,totalR=0;for(var i=0;i<cs.length;i++){var c=cs[i];totalC+=(c.total||0);totalU+=usedH(c);totalLv+=lvN(c,k.id);}
+for(var i=0;i<S.records.length;i++){var r=S.records[i];var ok=false;for(var j=0;j<cs.length;j++)if(cs[j].id===r.cid){ok=true;break;}if(ok&&!r.leave)totalR++;}
+var rem=Math.max(0,totalC-totalU),pct=totalC?Math.min(100,Math.round(totalU/totalC*100)):0;
+var h='<div class="page">';
+h+='<div class="big"><div class="big-lbl">总体完成进度</div><div class="big-num">'+pct+'%</div>';
+h+='<div class="bp"><div class="bp-f" style="width:'+pct+'%;"></div></div>';
+h+='<div class="big-row"><span>已用 '+totalU+' 课时</span><span>剩余 '+rem+' 课时</span></div></div>';
+h+='<div class="sg3">';
+h+='<div class="sg3-i"><p class="sg3-n" style="color:#7c3aed;">'+cs.length+'</p><p class="sg3-l">课程总数</p></div>';
+h+='<div class="sg3-i"><p class="sg3-n" style="color:#ec4899;">'+totalR+'</p><p class="sg3-l">累计上课</p></div>';
+h+='<div class="sg3-i"><p class="sg3-n" style="color:#f97316;">'+totalLv+'</p><p class="sg3-l">累计请假</p></div>';
+h+='</div>';
+var wkData=[];var st=wStart();for(var i=0;i<7;i++){var d=new Date(st);d.setDate(st.getDate()+i);var cnt=0;for(var j=0;j<S.records.length;j++){var r=S.records[j];if(r.date===fmtD(d)&&!r.leave){var f=false;for(var a=0;a<cs.length;a++)if(cs[a].id===r.cid){f=true;break;}if(f)cnt++;}}wkData.push({d:d,c:cnt});}
+var maxC=1;for(var i=0;i<wkData.length;i++)if(wkData[i].c>maxC)maxC=wkData[i].c;
+h+='<div class="chart"><h2 class="h2">📊 本周上课频次</h2><div class="cwrap">';
+for(var i=0;i<wkData.length;i++){var w=wkData[i];var hgt=maxC?Math.round(w.c/maxC*90):4;
+h+='<div class="cbw"><div class="cb" style="height:'+Math.max(4,hgt)+'px;"></div><div class="cd2">'+WSHORT[w.d.getDay()]+'</div><div style="font-size:11px;color:#1f2937;font-weight:600;">'+w.c+'</div></div>';}
+h+='</div></div>';
+h+='<div class="chart"><h2 class="h2">📚 各课程进度</h2>';
+for(var i=0;i<cs.length;i++){var c=cs[i];var cc=col(c.color),u=usedH(c),p=c.total?Math.round(u/c.total*100):0;
+h+='<div class="cp-i"><div class="cp-h"><span class="cp-n">'+esc(c.name)+(c.shared?' 👨‍👩‍👧':'')+'</span><span class="cp-c">'+u+'/'+(c.total||0)+' · '+p+'%</span></div>';
+h+='<div class="pbar"><div class="pbar-fill" style="width:'+p+'%;background:'+cc.m+';"></div></div></div>';}
+if(!cs.length)h+='<p class="muted" style="text-align:center;padding:20px 0;">暂无课程</p>';
+h+='</div>';
+if(cs.length){var monthU=0,monthLv=0;for(var i=0;i<S.records.length;i++){var r=S.records[i];var f=false;for(var j=0;j<cs.length;j++)if(cs[j].id===r.cid){f=true;break;}if(!f)continue;var d=new Date(r.date);if(d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()){if(r.leave)monthLv++;else monthU++;}}
+h+='<div class="card"><h2 class="h2">📅 本月数据</h2>';
+h+='<div style="display:flex;gap:12px;text-align:center;">';
+h+='<div style="flex:1;background:#d1fae5;border-radius:12px;padding:14px;"><div style="font-size:22px;font-weight:bold;color:#059669;">'+monthU+'</div><div style="font-size:12px;color:#059669;margin-top:2px;">上课次数</div></div>';
+h+='<div style="flex:1;background:#ffedd5;border-radius:12px;padding:14px;"><div style="font-size:22px;font-weight:bold;color:#ea580c;">'+monthLv+'</div><div style="font-size:12px;color:#ea580c;margin-top:2px;">请假次数</div></div>';
+h+='<div style="flex:1;background:#dbeafe;border-radius:12px;padding:14px;"><div style="font-size:22px;font-weight:bold;color:#2563eb;">'+(monthU+monthLv>0?Math.round(monthU/(monthU+monthLv)*100):0)+'%</div><div style="font-size:12px;color:#2563eb;margin-top:2px;">出勤率</div></div>';
+h+='</div></div>';}h+='</div>';return h;}
+
+function render(){var root=document.getElementById('root');var h=headerHTML();
+if(S.curTab==='home')h+=homeHTML();
+else if(S.curTab==='schedule')h+=schedHTML();
+else if(S.curTab==='records')h+=recsHTML();
+else if(S.curTab==='stats')h+=statsHTML();
+h+=navHTML();root.innerHTML=h;}
+
+/* ========== 添加孩子 ========== */
+function showAddKid(){
+  var avHtml='';for(var i=0;i<AV.length;i++)avHtml+='<button type="button" class="kid-op '+(i===0?'on':'')+'" data-av="'+AV[i]+'" onclick="pickAv(this)">'+AV[i]+'</button>';
+  var h='<div class="mask" onclick="if(event.target===this)closeModal()"><div class="modal slide-up"><div class="m-head"><h3 class="m-title">添加孩子</h3><button class="m-close" onclick="closeModal()">✕</button></div>';
+  h+='<form onsubmit="saveKid(event)"><div class="fl"><label class="fl-l">孩子昵称</label><input id="kn" class="in" placeholder="如：大宝、二宝" maxlength="10" required></div>';
+  h+='<div class="fl"><label class="fl-l">选择头像</label><div class="kid-grid">'+avHtml+'</div></div>';
+  h+='<button type="submit" class="b-save">保存</button></form></div></div>';
+  document.getElementById('root').setAttribute('data-modal','1');document.getElementById('root').innerHTML=document.getElementById('root').innerHTML+h;
+  setTimeout(function(){try{document.getElementById('kn').focus();}catch(e){}},100);
+}
+function pickAv(b){var all=b.parentNode.querySelectorAll('.kid-op');for(var i=0;i<all.length;i++)all[i].classList.remove('on');b.classList.add('on');}
+function saveKid(e){e.preventDefault();var nm=document.getElementById('kn').value.trim();if(!nm){toast('请输入昵称');return;}var avOn=document.querySelector('.kid-op.on'),av=avOn?avOn.getAttribute('data-av'):'👦';
+S.kids.push({id:uid(),name:nm,avatar:av});if(!S.curKid)S.curKid=S.kids[S.kids.length-1].id;save();closeModal();toast('添加成功 🎉');}
+
+/* ========== 周课表式时段编辑 ========== */
+// 单时段卡片（给定星期day）
+function slotBlock(day,start,end,place){
+  start=start||'18:00';end=end||'19:00';place=place||'';
+  var h='<div class="wk-slot">';
+  h+='<button type="button" class="wk-slot-del" onclick="this.parentNode.remove()">✕</button>';
+  h+='<div class="wk-time-row"><label>起止时间</label>';
+  h+='<input type="time" class="slot-start" value="'+start+'">';
+  h+='<input type="time" class="slot-end" value="'+end+'"></div>';
+  h+='<input type="text" class="wk-place slot-place" placeholder="地点/教室（选填）" value="'+esc(place)+'"></div>';
+  return h;
+}
+// 一周7天的整体结构：按 dayArr（已启用的时段数组）初始化
+function weekGrid(existingSchedules){
+  // existingSchedules: [{day,start,end,place},...]
+  var byDay={};for(var d=0;d<7;d++)byDay[d]=[];
+  if(existingSchedules&&existingSchedules.length){
+    for(var i=0;i<existingSchedules.length;i++){var s=existingSchedules[i];var dy=Number(s.day);if(!byDay[dy])byDay[dy]=[];byDay[dy].push(s);}
+  }
+  var order=[1,2,3,4,5,6,0]; // 周一到周日
+  var h='<div class="week-grid" id="wgrid">';
+  for(var i=0;i<order.length;i++){
+    var dy=order[i],slots=byDay[dy]||[],isOn=slots.length>0;
+    h+='<div class="wk-day '+(isOn?'on':'')+'" data-day="'+dy+'">';
+    h+='<div class="wk-head" onclick="toggleWkDay(this)">';
+    h+='<div class="wk-switch '+(isOn?'on':'')+'"><input type="checkbox" '+(isOn?'checked':'')+'></div>';
+    h+='<div class="wk-label">'+WK[dy]+'<span class="wk-short">'+(dy===0||dy===6?'周末':'工作日')+'</span></div>';
+    h+='<span style="margin-left:auto;font-size:11px;color:#9ca3af;" class="wk-count">'+(isOn?slots.length+'节':'无')+'</span>';
+    h+='</div>';
+    h+='<div class="wk-body">';
+    if(slots.length){for(var j=0;j<slots.length;j++)h+=slotBlock(dy,slots[j].start,slots[j].end,slots[j].place);}
+    else h+=slotBlock(dy,'','',''); // 默认空白一块
+    h+='<button type="button" class="wk-add-slot" onclick="addSlotToDay(this)">+ 再加一节（同天多时段）</button>';
+    h+='</div></div>';
+  }
+  h+='<div class="wk-hint">💡 把每天的开关打开 → 设置起止时间；同一天可以加多个时段（如上午一节、下午一节）；不用的天保持关闭即可</div>';
+  h+='</div>';
+  return h;
+}
+function toggleWkDay(headEl){
+  var dayBox=headEl.parentNode;
+  var sw=headEl.querySelector('.wk-switch'),cb=sw.querySelector('input');
+  var body=dayBox.querySelector('.wk-body'),cnt=dayBox.querySelector('.wk-count');
+  var nowOn=!dayBox.classList.contains('on');
+  if(nowOn){
+    dayBox.classList.add('on');sw.classList.add('on');cb.checked=true;
+    // 如果一个时段都没有就加一个
+    if(!body.querySelector('.wk-slot')){
+      var btn=body.querySelector('.wk-add-slot');
+      var tmp=document.createElement('div');tmp.innerHTML=slotBlock(Number(dayBox.getAttribute('data-day')),'','','');
+      body.insertBefore(tmp.firstElementChild,btn);
+    }
+    cnt.textContent=body.querySelectorAll('.wk-slot').length+'节';
+  }else{
+    dayBox.classList.remove('on');sw.classList.remove('on');cb.checked=false;
+    cnt.textContent='无';
+  }
+}
+function addSlotToDay(btn){
+  var dayBox=btn.parentNode.parentNode;
+  var dy=Number(dayBox.getAttribute('data-day'));
+  var tmp=document.createElement('div');tmp.innerHTML=slotBlock(dy,'','','');
+  dayBox.querySelector('.wk-body').insertBefore(tmp.firstElementChild,btn);
+  var cnt=dayBox.querySelector('.wk-count');cnt.textContent=dayBox.querySelectorAll('.wk-slot').length+'节';
+}
+// 从 week-grid 收集所有启用的时段
+function collectWeekSlots(){
+  var arr=[],days=document.querySelectorAll('#wgrid .wk-day');
+  for(var i=0;i<days.length;i++){
+    var d=days[i];if(!d.classList.contains('on'))continue;
+    var dy=Number(d.getAttribute('data-day'));
+    var slots=d.querySelectorAll('.wk-slot');
+    for(var j=0;j<slots.length;j++){
+      var sl=slots[j];var st=sl.querySelector('.slot-start').value,en=sl.querySelector('.slot-end').value,pl=sl.querySelector('.slot-place').value.trim();
+      if(st){arr.push({id:uid(),day:dy,start:st,end:en,place:pl});}
+    }
+  }
+  return arr;
+}
+
+/* ========== 添加 / 编辑课程 ========== */
+function showAddCourse(){
+  var k=getKid(),opts='';for(var i=0;i<S.kids.length;i++)opts+='<option value="'+S.kids[i].id+'"'+(S.kids[i].id===k.id?' selected':'')+'>'+S.kids[i].avatar+' '+esc(S.kids[i].name)+'</option>';
+  var copts='';for(var i=0;i<CL.length;i++)copts+='<button type="button" class="kid-op color-op '+(i===0?'on':'')+'" data-c="'+CL[i].n+'" onclick="pickColor(this)" style="background:'+CL[i].l+';border-color:'+(i===0?CL[i].m:'transparent')+';color:'+CL[i].m+';font-size:14px;font-weight:bold;">●</button>';
+  var h='<div class="mask" onclick="if(event.target===this)closeModal()"><div class="modal slide-up"><div class="m-head"><h3 class="m-title">添加课程</h3><button class="m-close" onclick="closeModal()">✕</button></div>';
+  h+='<form onsubmit="saveCourse(event,\'\')">';
+  h+='<div class="fl"><label class="fl-l">课程名称</label><input id="cn" class="in" placeholder="如：钢琴、英语、美术、篮球" required></div>';
+  h+='<div class="fg"><div class="fl" style="margin-bottom:0;"><label class="fl-l">所属孩子</label><select id="ck" class="sel">'+opts+'</select></div>';
+  h+='<div class="fl" style="margin-bottom:0;"><label class="fl-l">老师（选填）</label><input id="ct" class="in" placeholder="老师姓名"></div></div>';
+  h+='<div class="fg" style="margin-top:14px;"><div class="fl" style="margin-bottom:0;"><label class="fl-l">总课时</label><input id="ctot" type="number" class="in" min="1" value="20" required></div>';
+  h+='<div class="fl" style="margin-bottom:0;"><label class="fl-l">每次扣几节</label><input id="ccost" type="number" class="in" min="0.5" step="0.5" value="1"></div></div>';
+  h+='<div class="fl" style="margin-top:14px;"><label class="fl-l">颜色标记</label><div class="kid-grid">'+copts+'</div></div>';
+  h+='<div class="fl"><label class="fl-l">📅 每周上课时间（每天独立设置）</label>'+weekGrid([])+'</div>';
+  h+='<label class="tgg" style="margin-bottom:10px;"><input type="checkbox" id="cs2"><span style="font-size:13px;">👨‍👩‍👧 兄弟姐妹共享课时</span></label>';
+  h+='<label class="tgg"><input type="checkbox" id="clc"><span style="font-size:13px;">🏖️ 请假也扣课时</span></label>';
+  h+='<button type="submit" class="b-save">保存课程</button></form></div></div>';
+  document.getElementById('root').setAttribute('data-modal','1');document.getElementById('root').innerHTML=document.getElementById('root').innerHTML+h;
+  setTimeout(function(){try{document.getElementById('cn').focus();}catch(e){}},100);
+}
+function pickColor(b){var all=b.parentNode.querySelectorAll('.color-op');for(var j=0;j<all.length;j++){all[j].classList.remove('on');all[j].style.borderColor='transparent';}b.classList.add('on');var cn=b.getAttribute('data-c');var cm=cn==='紫'?'#8b5cf6':cn==='粉'?'#ec4899':cn==='蓝'?'#3b82f6':cn==='绿'?'#10b981':cn==='橙'?'#f97316':'#06b6d4';b.style.borderColor=cm;}
+
+function showEditCourse(id){var c=null;for(var i=0;i<S.courses.length;i++)if(S.courses[i].id===id){c=S.courses[i];break;}if(!c)return;
+  var opts='';for(var i=0;i<S.kids.length;i++)opts+='<option value="'+S.kids[i].id+'"'+(S.kids[i].id===c.kidId?' selected':'')+'>'+S.kids[i].avatar+' '+esc(S.kids[i].name)+'</option>';
+  var copts='';for(var i=0;i<CL.length;i++){var sel=CL[i].n===c.color;copts+='<button type="button" class="kid-op color-op '+(sel?'on':'')+'" data-c="'+CL[i].n+'" onclick="pickColor(this)" style="background:'+CL[i].l+';border-color:'+(sel?CL[i].m:'transparent')+';color:'+CL[i].m+';font-size:14px;font-weight:bold;">●</button>';}
+  var h='<div class="mask" onclick="if(event.target===this)closeModal()"><div class="modal slide-up"><div class="m-head"><h3 class="m-title">编辑课程</h3><button class="m-close" onclick="closeModal()">✕</button></div>';
+  h+='<form onsubmit="saveCourse(event,\''+id+'\')">';
+  h+='<div class="fl"><label class="fl-l">课程名称</label><input id="cn" class="in" value="'+esc(c.name)+'" required></div>';
+  h+='<div class="fg"><div class="fl" style="margin-bottom:0;"><label class="fl-l">所属孩子</label><select id="ck" class="sel">'+opts+'</select></div>';
+  h+='<div class="fl" style="margin-bottom:0;"><label class="fl-l">老师（选填）</label><input id="ct" class="in" value="'+esc(c.teacher||'')+'"></div></div>';
+  h+='<div class="fg" style="margin-top:14px;"><div class="fl" style="margin-bottom:0;"><label class="fl-l">总课时（续费可改大）</label><input id="ctot" type="number" class="in" min="1" value="'+(c.total||20)+'" required></div>';
+  h+='<div class="fl" style="margin-bottom:0;"><label class="fl-l">每次扣几节</label><input id="ccost" type="number" class="in" min="0.5" step="0.5" value="'+(c.cost||1)+'"></div></div>';
+  h+='<div class="fl" style="margin-top:14px;"><label class="fl-l">颜色标记</label><div class="kid-grid">'+copts+'</div></div>';
+  h+='<div class="fl"><label class="fl-l">📅 每周上课时间（每天独立设置）</label>'+weekGrid(c.schedules||[])+'</div>';
+  h+='<label class="tgg" style="margin-bottom:10px;"><input type="checkbox" id="cs2"'+(c.shared?' checked':'')+'><span style="font-size:13px;">👨‍👩‍👧 兄弟姐妹共享课时</span></label>';
+  h+='<label class="tgg" style="margin-bottom:10px;"><input type="checkbox" id="clc"'+(c.leaveCost?' checked':'')+'><span style="font-size:13px;">🏖️ 请假也扣课时</span></label>';
+  h+='<div style="display:flex;gap:8px;margin-top:14px;"><button type="button" onclick="delCourse(\''+id+'\')" style="flex:1;padding:13px;border-radius:12px;background:#fef2f2;color:#dc2626;font-weight:600;font-size:15px;">删除课程</button>';
+  h+='<button type="submit" class="b-save" style="flex:2;margin-top:0;">保存修改</button></div></form></div></div>';
+  document.getElementById('root').setAttribute('data-modal','1');document.getElementById('root').innerHTML=document.getElementById('root').innerHTML+h;
+  setTimeout(function(){try{document.getElementById('cn').focus();}catch(e){}},100);
+}
+function saveCourse(e,editId){e.preventDefault();
+  var nm=document.getElementById('cn').value.trim();if(!nm){toast('请输入课程名');return;}
+  var ki=document.getElementById('ck').value,tot=parseInt(document.getElementById('ctot').value)||0,cost=parseFloat(document.getElementById('ccost').value)||1;
+  var co=null;var cop=document.querySelector('.color-op.on');if(cop)co=cop.getAttribute('data-c');else co='紫';
+  var sh=document.getElementById('cs2').checked,lc=document.getElementById('clc').checked;
+  var t=document.getElementById('ct').value.trim();var scheds=collectWeekSlots();
+  if(editId){for(var i=0;i<S.courses.length;i++)if(S.courses[i].id===editId){S.courses[i].name=nm;S.courses[i].kidId=ki;S.courses[i].teacher=t;S.courses[i].total=tot;S.courses[i].cost=cost;S.courses[i].color=co;S.courses[i].shared=sh;S.courses[i].leaveCost=lc;S.courses[i].schedules=scheds;break;}toast('已保存修改 ✅');}
+  else{S.courses.push({id:uid(),name:nm,kidId:ki,teacher:t,total:tot,cost:cost,color:co,shared:sh,leaveCost:lc,schedules:scheds,createdAt:today()});toast('添加成功 🎉');}
+  save();closeModal();
+}
+function delCourse(id){if(!confirm('确定删除该课程？所有打卡记录也会被删除'))return;
+S.courses=S.courses.filter(function(c){return c.id!==id;});S.records=S.records.filter(function(r){return r.cid!==id;});save();closeModal();toast('已删除');}
+
+function doCheck(cid,dt,kidId,leave){var c=null;for(var i=0;i<S.courses.length;i++)if(S.courses[i].id===cid){c=S.courses[i];break;}if(!c)return;
+  var date=dt||today();var ex=hasRec(cid,date,kidId);if(ex){toast('该天已有记录');return;}
+  var now=new Date(),tstr=pad(now.getHours())+':'+pad(now.getMinutes());
+  S.records.push({id:uid(),cid:cid,kid:kidId,date:date,time:tstr,leave:leave,note:''});save();
+  var u=usedH(c);if(c.total&&u>=c.total)toast(leave?'已记录请假 ⚠️ 课时已用完':'打卡成功 🎉 课时已用完');else toast(leave?'已记录请假 🏖️':'打卡成功 ✓');render();}
+function delRec(id){if(!confirm('删除这条记录？'))return;S.records=S.records.filter(function(r){return r.id!==id;});save();render();toast('已删除');}
+
+function showCourseDetail(id){var c=null;for(var i=0;i<S.courses.length;i++)if(S.courses[i].id===id){c=S.courses[i];break;}if(!c)return;var cc=col(c),u=usedH(c),rem=Math.max(0,(c.total||0)-u),pct=c.total?Math.round(u/c.total*100):0,k=getKid();
+var recs=[];for(var i=0;i<S.records.length;i++){var r=S.records[i];if(r.cid===id&&(c.shared||r.kid===k.id))recs.push(r);}recs.sort(function(a,b){return a.date<b.date?1:-1;});
+var h='<div class="mask" onclick="if(event.target===this)closeModal()"><div class="modal slide-up"><div class="m-head"><h3 class="m-title">课程详情</h3><button class="m-close" onclick="closeModal()">✕</button></div>';
+h+='<div class="dh" style="background:'+cc.l+';"><div class="dh-row"><div class="dh-ico" style="background:'+cc.m+'">📚</div><div><div class="dh-nm">'+esc(c.name)+(c.shared?' <span style="font-size:12px;background:#f3e8ff;color:#7c3aed;padding:2px 6px;border-radius:4px;">👨‍👩‍👧共享</span>':'')+'</div><div class="dh-sub">'+(c.teacher?esc(c.teacher)+' · ':'')+'每次'+(c.cost||1)+'课时</div></div></div>';
+h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-top:12px;">';
+h+='<div style="background:white;border-radius:10px;padding:10px;"><div style="font-size:18px;font-weight:bold;color:'+cc.m+';">'+u+'</div><div style="font-size:11px;color:#6b7280;margin-top:2px;">已上课时</div></div>';
+h+='<div style="background:white;border-radius:10px;padding:10px;"><div style="font-size:18px;font-weight:bold;color:'+(rem<=3?'#ef4444':'#10b981')+';">'+rem+'</div><div style="font-size:11px;color:#6b7280;margin-top:2px;">剩余课时</div></div>';
+h+='<div style="background:white;border-radius:10px;padding:10px;"><div style="font-size:18px;font-weight:bold;color:#f97316;">'+lvN(c,k.id)+'</div><div style="font-size:11px;color:#6b7280;margin-top:2px;">请假次数</div></div>';
+h+='</div><div class="pbar" style="height:8px;margin-top:12px;background:rgba(0,0,0,.06);"><div class="pbar-fill" style="width:'+pct+'%;background:'+cc.m+';"></div></div></div>';
+h+='<div class="di-block"><div class="di-i"><span class="di-l">总课时</span><b>'+(c.total||0)+' 节</b></div>';
+h+='<div class="di-i"><span class="di-l">完成度</span><b>'+pct+'%</b></div>';
+h+='<div class="di-i"><span class="di-l">请假扣课时</span><b>'+(c.leaveCost?'是':'否')+'</b></div>';
+h+='<div class="di-i"><span class="di-l">上课时间</span></div><div class="sched-list">';
+if(c.schedules&&c.schedules.length){var sarr=c.schedules.slice().sort(function(a,b){return (a.start||'')<(b.start||'')?-1:1;});
+for(var i=0;i<sarr.length;i++){var s=sarr[i];h+='<div class="sl-i"><span class="sl-w" style="background:'+cc.m+';">'+WK[s.day]+'</span><span>'+(s.start||'')+(s.end?'-'+s.end:'')+(s.place?' · '+esc(s.place):'')+'</span></div>';}}
+else{h+='<div style="color:#9ca3af;font-size:13px;">未设置固定时间</div>';}h+='</div></div>';
+h+='<button class="b-save" style="margin-bottom:10px;background:'+cc.m+'" onclick="closeModal();setTimeout(function(){showEditCourse(\''+id+'\');},50);">✏️ 编辑课程/续费</button>';
+if(recs.length>0){h+='<div style="font-size:13px;font-weight:600;color:#374151;margin:14px 0 8px;">最近打卡记录</div><div class="rmini">';
+for(var i=0;i<Math.min(recs.length,15);i++){var r=recs[i];var d2=new Date(r.date),knm='';for(var a=0;a<S.kids.length;a++)if(S.kids[a].id===r.kid){knm=S.kids[a].avatar;break;}
+h+='<div class="rm-i"><span>'+(r.leave?'🏖️':'✓')+' '+(d2.getMonth()+1)+'/'+d2.getDate()+' '+WK[d2.getDay()]+(c.shared?' '+knm:'')+' · '+(r.time||'')+'</span><button onclick="delRec(\''+r.id+'\')" style="color:#d1d5db;">✕</button></div>';}
+h+='</div>';}h+='</div></div>';
+document.getElementById('root').setAttribute('data-modal','1');document.getElementById('root').innerHTML=document.getElementById('root').innerHTML+h;
+}
+
+function showSettings(){var h='<div class="mask" onclick="if(event.target===this)closeModal()"><div class="modal slide-up"><div class="m-head"><h3 class="m-title">⚙️ 设置与管理</h3><button class="m-close" onclick="closeModal()">✕</button></div>';
+h+='<div class="card" style="box-shadow:none;padding:0;margin-bottom:12px;"><div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:10px;">👨‍👩‍👧 孩子管理</div>';
+for(var i=0;i<S.kids.length;i++){var k=S.kids[i];var cnt=S.courses.filter(function(c){return c.kidId===k.id;}).length;
+h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:#f9fafb;border-radius:10px;margin-bottom:6px;"><div><b>'+k.avatar+' '+esc(k.name)+'</b><span style="font-size:12px;color:#6b7280;margin-left:8px;">'+cnt+'门课</span></div>';
+if(S.kids.length>1)h+='<button onclick="delKid(\''+k.id+'\')" style="color:#ef4444;font-size:12px;">删除</button>';
+else h+='<span style="font-size:12px;color:#9ca3af;">默认</span>';
+h+='</div>';}
+h+='<button class="setting-i purp" onclick="closeModal();setTimeout(function(){showAddKid();},100);">+ 添加孩子<span class="setting-ar">→</span></button></div>';
+h+='<button class="setting-i blue" onclick="exportData()">📤 导出数据备份<span class="setting-d">下载JSON文件，防止数据丢失</span></button>';
+h+='<button class="setting-i purp" onclick="document.getElementById(\'impf\').click()">📥 导入备份数据<span class="setting-d">从JSON文件恢复数据</span></button><input type="file" id="impf" accept=".json" style="display:none;" onchange="importData(event)">';
+h+='<button class="setting-i blue" onclick="closeModal();setTimeout(function(){showAddCourse();},100);">➕ 添加新课程<span class="setting-d">手动添加一门培训班课程</span></button>';
+h+='<button class="setting-i red" onclick="clrAll()">🗑️ 清空所有数据<span class="setting-d">将删除所有孩子、课程和记录</span></button>';
+h+='<p class="set-foot">🎓 培训班课时打卡 · 数据保存在本地浏览器<br>导出备份可跨设备迁移 · 支持每周每天独立设置上课时间</p></div></div>';
+document.getElementById('root').setAttribute('data-modal','1');document.getElementById('root').innerHTML=document.getElementById('root').innerHTML+h;
+}
+function delKid(id){if(S.kids.length<=1){toast('至少保留一个孩子');return;}if(!confirm('删除该孩子？其名下非共享课程将一并删除'))return;
+S.kids=S.kids.filter(function(k){return k.id!==id;});S.courses=S.courses.filter(function(c){return c.kidId!==id||c.shared;});if(S.curKid===id)S.curKid=S.kids[0].id;save();closeModal();toast('已删除');}
+function exportData(){var blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='课程打卡备份_'+today()+'.json';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);toast('已导出备份 📤');}
+function importData(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);if(!d.kids||!d.courses)throw new Error('格式错误');if(!confirm('导入将覆盖当前数据，确认？'))return;S=d;save();closeModal();toast('导入成功 ✅');}catch(err){toast('文件格式错误');}};r.readAsText(f);}
+function clrAll(){if(!confirm('确定清空所有数据？此操作不可恢复！'))return;if(!confirm('再次确认：所有数据将被删除！'))return;localStorage.removeItem(KEY);S={kids:[],courses:[],records:[],curKid:null,curTab:'home'};load();closeModal();toast('已清空');}
+
+load();render();
+</script>
+</body>
+</html>
