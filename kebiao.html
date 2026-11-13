@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的大学课表</title>
+    <script src="https://aisearch-task.bj.bcebos.com/static/tailwindcss-3.4.17.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#7C3AED',
+                        accent: '#F59E0B',
+                        course1: '#3B82F6',
+                        course2: '#10B981',
+                        course3: '#F59E0B',
+                        course4: '#EF4444',
+                        course5: '#8B5CF6',
+                        course6: '#EC4899',
+                    },
+                    fontFamily: {
+                        sans: ['PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .glass {
+                background: rgba(255, 255, 255, 0.85);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+            }
+            .editable:hover {
+                outline: 2px dashed #4F46E5;
+                outline-offset: 2px;
+                border-radius: 4px;
+                cursor: text;
+            }
+            .editing {
+                outline: 2px solid #4F46E5 !important;
+                outline-offset: 2px;
+                background: rgba(79, 70, 229, 0.05);
+            }
+            .course-card {
+                transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .course-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .add-btn {
+                transition: all 0.2s ease;
+            }
+            .add-btn:hover {
+                transform: scale(1.1);
+            }
+            .modal-enter {
+                animation: modalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            @keyframes modalIn {
+                from { opacity: 0; transform: scale(0.95); }
+                to { opacity: 1; transform: scale(1); }
+            }
+            .fade-in {
+                animation: fadeIn 0.4s ease-out;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(8px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 min-h-screen font-sans pb-20">
+    <!-- 顶部导航 -->
+    <header class="sticky top-0 z-40 glass border-b border-white/50">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa fa-calendar-check-o text-primary text-[20px]"></i>
+                <h1 class="text-lg font-bold text-gray-800">我的大学课表</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="editToggle" class="flex items-center gap-1 px-3 py-1.5 bg-primary text-white rounded-full text-sm font-medium shadow-md hover:shadow-lg transition-all">
+                    <i class="fa fa-pencil text-[14px]"></i>
+                    <span id="editBtnText">编辑模式</span>
+                </button>
+                <button id="resetBtn" class="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-full transition-all" title="重置数据">
+                    <i class="fa fa-refresh text-[16px]"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        <!-- 学生信息卡片 -->
+        <section class="glass rounded-2xl shadow-lg p-5 border border-white/60 fade-in" style="animation-delay: 0.1s">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-[17px] font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa fa-user-circle text-primary"></i>
+                    基本信息
+                    <span class="edit-hint text-xs text-primary hidden"><i class="fa fa-info-circle mr-1"></i>点击文字即可编辑</span>
+                </h2>
+                <span id="currentDate" class="text-sm text-gray-500"></span>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="space-y-1">
+                    <label class="text-xs text-gray-500 font-medium">姓名</label>
+                    <div class="editable text-[16px] font-semibold text-gray-800 py-1" data-field="name" contenteditable="false">张同学</div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs text-gray-500 font-medium">院系</label>
+                    <div class="editable text-[16px] font-semibold text-gray-800 py-1" data-field="department" contenteditable="false">计算机学院</div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs text-gray-500 font-medium">专业</label>
+                    <div class="editable text-[16px] font-semibold text-gray-800 py-1" data-field="major" contenteditable="false">软件工程</div>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs text-gray-500 font-medium">年级</label>
+                    <div class="editable text-[16px] font-semibold text-gray-800 py-1" data-field="grade" contenteditable="false">2024级</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 周次切换 -->
+        <section class="fade-in" style="animation-delay: 0.2s">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-[17px] font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fa fa-calendar text-primary"></i>
+                    课程表
+                </h2>
+                <div class="flex items-center gap-2" id="weekTabs">
+                    <button class="week-tab px-3 py-1 rounded-full text-sm font-medium bg-white/70 text-gray-600 hover:bg-white" data-week="1">第1周</button>
+                    <button class="week-tab px-3 py-1 rounded-full text-sm font-medium bg-primary text-white shadow-sm" data-week="2">第2周</button>
+                </div>
+            </div>
+
+            <!-- 课表主体 - 横向滚动 -->
+            <div class="glass rounded-2xl shadow-lg border border-white/60 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[700px]" id="scheduleTable">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-indigo-500/10 to-purple-500/10">
+                                <th class="w-[70px] p-2 text-center text-xs font-semibold text-gray-600 border-b border-gray-200/60">时间</th>
+                                <th class="p-2 text-center text-xs font-semibold text-gray-600 border-b border-gray-200/60">周一</th>
+                                <th class="p-2 text-center text-xs font-semibold text-gray-600 border-b border-gray-200/60">周二</th>
+                                <th class="p-2 text-center text-xs font-semibold text-gray-600 border-b border-gray-200/60">周三</th>
+                                <th class="p-2 text-center text-xs font-semibold text-gray-600 border-b border-gray-200/60">周四</th>
+                                <th class="p-2 text-center text-xs font-semibold text-gray-600 border-b border-gray-200/60">周五</th>
+                                <th class="p-2 text-center text-xs font-semibold text-gray-600 border-b border-gray-200/60">周六</th>
+                                <th class="p-2 text-center text-xs font-semibold text-gray-600 border-b border-gray-200/60">周日</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduleBody">
+                            <!-- JS动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 mt-2 text-center edit-hint hidden"><i class="fa fa-lightbulb-o mr-1"></i>编辑模式下点击课程可修改，点击空白格可添加课程</p>
+        </section>
+
+        <!-- 今日课程 -->
+        <section class="glass rounded-2xl shadow-lg p-5 border border-white/60 fade-in" style="animation-delay: 0.3s">
+            <h2 class="text-[17px] font-bold text-gray-800 flex items-center gap-2 mb-4">
+                <i class="fa fa-bell text-accent"></i>
+                今日课程
+            </h2>
+            <div id="todayCourses" class="space-y-3">
+                <!-- JS动态生成 -->
+            </div>
+        </section>
+
+        <!-- 本周统计 -->
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-4 fade-in" style="animation-delay: 0.4s">
+            <div class="glass rounded-xl p-4 border border-white/60 text-center">
+                <div class="text-2xl font-bold text-course1" id="statTotal">0</div>
+                <div class="text-xs text-gray-500 mt-1">本周课程</div>
+            </div>
+            <div class="glass rounded-xl p-4 border border-white/60 text-center">
+                <div class="text-2xl font-bold text-course2" id="statHours">0</div>
+                <div class="text-xs text-gray-500 mt-1">总学时</div>
+            </div>
+            <div class="glass rounded-xl p-4 border border-white/60 text-center">
+                <div class="text-2xl font-bold text-course3" id="statLocations">0</div>
+                <div class="text-xs text-gray-500 mt-1">上课地点</div>
+            </div>
+            <div class="glass rounded-xl p-4 border border-white/60 text-center">
+                <div class="text-2xl font-bold text-course5" id="statTeachers">0</div>
+                <div class="text-xs text-gray-500 mt-1">授课老师</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 添加/编辑课程弹窗 -->
+    <div id="courseModal" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md modal-enter">
+            <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-gray-800" id="modalTitle">添加课程</h3>
+                <button id="closeModal" class="p-1 text-gray-400 hover:text-gray-600 rounded-full">
+                    <i class="fa fa-times text-[18px]"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <input type="hidden" id="courseId">
+                <input type="hidden" id="courseDay">
+                <input type="hidden" id="courseSection">
+                <input type="hidden" id="courseWeek">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">课程名称</label>
+                    <input type="text" id="courseName" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all" placeholder="例如：高等数学">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">上课地点</label>
+                    <input type="text" id="courseLocation" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all" placeholder="例如：教一201">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">授课教师</label>
+                    <input type="text" id="courseTeacher" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all" placeholder="例如：王老师">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">开始节数</label>
+                        <select id="courseStart" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all">
+                            <option value="1">第1节</option>
+                            <option value="3">第3节</option>
+                            <option value="5">第5节</option>
+                            <option value="7">第7节</option>
+                            <option value="9">第9节</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">持续节数</label>
+                        <select id="courseDuration" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all">
+                            <option value="2">2节</option>
+                            <option value="3">3节</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">课程颜色</label>
+                    <div class="flex gap-2" id="colorPicker">
+                        <button data-color="course1" class="w-8 h-8 rounded-full bg-course1 ring-2 ring-offset-2 ring-course1 color-btn"></button>
+                        <button data-color="course2" class="w-8 h-8 rounded-full bg-course2 color-btn"></button>
+                        <button data-color="course3" class="w-8 h-8 rounded-full bg-course3 color-btn"></button>
+                        <button data-color="course4" class="w-8 h-8 rounded-full bg-course4 color-btn"></button>
+                        <button data-color="course5" class="w-8 h-8 rounded-full bg-course5 color-btn"></button>
+                        <button data-color="course6" class="w-8 h-8 rounded-full bg-course6 color-btn"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-5 border-t border-gray-100 flex gap-3">
+                <button id="deleteCourse" class="hidden px-4 py-2 bg-red-50 text-red-600 rounded-lg font-medium hover:bg-red-100 transition-all">
+                    <i class="fa fa-trash-o mr-1"></i>删除
+                </button>
+                <button id="cancelCourse" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-all">取消</button>
+                <button id="saveCourse" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 shadow-md shadow-primary/20 transition-all">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-gray-800 text-white rounded-full text-sm shadow-lg opacity-0 transition-all duration-300 pointer-events-none z-50"></div>
+
+    <script>
+        // 时间段配置
+        const timeSlots = [
+            { section: 1, time: '08:00-08:45', label: '1-2节' },
+            { section: 3, time: '10:00-10:45', label: '3-4节' },
+            { section: 5, time: '14:00-14:45', label: '5-6节' },
+            { section: 7, time: '16:00-16:45', label: '7-8节' },
+            { section: 9, time: '19:00-19:45', label: '9-11节' }
+        ];
+
+        const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        let isEditMode = false;
+        let currentWeek = 2;
+        let selectedColor = 'course1';
+
+        // 默认课表数据
+        const defaultData = {
+            info: {
+                name: '史雪鹏',
+                department: '计算机学院',
+                major: '软件工程',
+                grade: '2008级'
+            },
+            courses: [
+                { id: 1, name: '高等数学', teacher: '王教授', location: '教一201', day: 1, start: 1, duration: 2, color: 'course1', week: 1 },
+                { id: 2, name: '大学英语', teacher: '李老师', location: '教三305', day: 1, start: 3, duration: 2, color: 'course2', week: 1 },
+                { id: 3, name: '程序设计', teacher: '张教授', location: '实验楼B402', day: 2, start: 1, duration: 2, color: 'course3', week: 1 },
+                { id: 4, name: '线性代数', teacher: '刘老师', location: '教二105', day: 2, start: 5, duration: 2, color: 'course4', week: 1 },
+                { id: 5, name: '计算机导论', teacher: '陈教授', location: '教一301', day: 3, start: 3, duration: 2, color: 'course5', week: 1 },
+                { id: 6, name: '体育', teacher: '赵老师', location: '体育场', day: 3, start: 5, duration: 2, color: 'course6', week: 1 },
+                { id: 7, name: '高等数学', teacher: '王教授', location: '教一201', day: 4, start: 1, duration: 2, color: 'course1', week: 1 },
+                { id: 8, name: '程序设计实验', teacher: '张教授', location: '实验楼A201', day: 4, start: 7, duration: 2, color: 'course3', week: 1 },
+                { id: 9, name: '大学英语', teacher: '李老师', location: '教三305', day: 5, start: 3, duration: 2, color: 'course2', week: 1 },
+                { id: 10, name: '思想道德', teacher: '周老师', location: '教四102', day: 5, start: 5, duration: 2, color: 'course4', week: 1 },
+                // 第2周课程
+                { id: 11, name: '高等数学', teacher: '王教授', location: '教一201', day: 1, start: 1, duration: 2, color: 'course1', week: 2 },
+                { id: 12, name: '大学物理', teacher: '孙教授', location: '教二203', day: 1, start: 5, duration: 2, color: 'course4', week: 2 },
+                { id: 13, name: '程序设计', teacher: '张教授', location: '实验楼B402', day: 2, start: 1, duration: 2, color: 'course3', week: 2 },
+                { id: 14, name: '大学英语', teacher: '李老师', location: '教三305', day: 2, start: 3, duration: 2, color: 'course2', week: 2 },
+                { id: 15, name: '线性代数', teacher: '刘老师', location: '教二105', day: 3, start: 1, duration: 2, color: 'course5', week: 2 },
+                { id: 16, name: '计算机导论', teacher: '陈教授', location: '教一301', day: 3, start: 3, duration: 2, color: 'course5', week: 2 },
+                { id: 17, name: '体育', teacher: '赵老师', location: '体育场', day: 4, start: 5, duration: 2, color: 'course6', week: 2 },
+                { id: 18, name: '物理实验', teacher: '孙教授', location: '实验楼C105', day: 4, start: 7, duration: 3, color: 'course4', week: 2 },
+                { id: 19, name: '选修课：人工智能导论', teacher: '吴教授', location: '教五401', day: 6, start: 3, duration: 2, color: 'course6', week: 2 },
+            ]
+        };
+
+        // 从localStorage加载数据
+        function loadData() {
+            const saved = localStorage.getItem('collegeSchedule');
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch(e) {
+                    return JSON.parse(JSON.stringify(defaultData));
+                }
+            }
+            return JSON.parse(JSON.stringify(defaultData));
+        }
+
+        // 保存数据到localStorage
+        function saveData() {
+            localStorage.setItem('collegeSchedule', JSON.stringify(scheduleData));
+            showToast('已自动保存');
+        }
+
+        let scheduleData = loadData();
+
+        // 显示Toast
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2000);
+        }
+
+        // 设置当前日期
+        function setCurrentDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('zh-CN', options);
+        }
+
+        // 获取今日星期几 (0=周日, 1=周一...6=周六)
+        function getTodayDayIndex() {
+            const day = new Date().getDay();
+            return day === 0 ? 6 : day - 1;
+        }
+
+        // 渲染课表
+        function renderSchedule() {
+            const tbody = document.getElementById('scheduleBody');
+            tbody.innerHTML = '';
+            
+            const todayIndex = getTodayDayIndex();
+
+            timeSlots.forEach((slot, slotIdx) => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-100/50 last:border-b-0';
+                
+                // 时间列
+                const timeCell = document.createElement('td');
+                timeCell.className = 'p-2 text-center border-r border-gray-100/50 bg-gray-50/50';
+                timeCell.innerHTML = '<div class="text-[11px] font-semibold text-gray-700">' + slot.label + '</div><div class="text-[10px] text-gray-400 mt-0.5">' + slot.time + '</div>';
+                row.appendChild(timeCell);
+
+                // 每天的列
+                for (let day = 0; day < 7; day++) {
+                    const cell = document.createElement('td');
+                    cell.className = 'p-1 border-r border-gray-100/50 last:border-r-0 relative min-h-[70px] ' + (day === todayIndex ? 'bg-blue-50/30' : '');
+                    cell.dataset.day = day + 1;
+                    cell.dataset.section = slot.section;
+
+                    // 查找这个时间段是否有课程
+                    const course = scheduleData.courses.find(c => 
+                        c.week === currentWeek && 
+                        c.day === day + 1 && 
+                        c.start === slot.section
+                    );
+
+                    if (course) {
+                        const courseEl = document.createElement('div');
+                        courseEl.className = 'course-card rounded-lg p-2 text-white cursor-pointer bg-' + course.color + ' shadow-sm h-full min-h-[70px]';
+                        courseEl.innerHTML = '<div class="text-[13px] font-semibold leading-tight course-name">' + course.name + '</div>' +
+                            '<div class="text-[11px] opacity-90 mt-1 flex items-center gap-1">' +
+                            '<i class="fa fa-map-marker text-[10px]"></i><span class="course-location">' + course.location + '</span></div>' +
+                            (course.teacher ? '<div class="text-[11px] opacity-80 mt-0.5 course-teacher">' + course.teacher + '</div>' : '');
+                        courseEl.addEventListener('click', () => {
+                            if (isEditMode) {
+                                openEditModal(course);
+                            }
+                        });
+                        cell.appendChild(courseEl);
+                    } else if (isEditMode) {
+                        // 编辑模式下显示添加按钮
+                        const addBtn = document.createElement('button');
+                        addBtn.className = 'add-btn w-full h-full min-h-[70px] flex items-center justify-center text-gray-300 hover:text-primary hover:bg-primary/5 rounded-lg transition-all';
+                        addBtn.innerHTML = '<i class="fa fa-plus-circle text-xl"></i>';
+                        addBtn.addEventListener('click', () => {
+                            openAddModal(day + 1, slot.section);
+                        });
+                        cell.appendChild(addBtn);
+                    }
+
+                    row.appendChild(cell);
+                }
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // 渲染基本信息
+        function renderInfo() {
+            document.querySelector('[data-field="name"]').textContent = scheduleData.info.name;
+            document.querySelector('[data-field="department"]').textContent = scheduleData.info.department;
+            document.querySelector('[data-field="major"]').textContent = scheduleData.info.major;
+            document.querySelector('[data-field="grade"]').textContent = scheduleData.info.grade;
+        }
+
+        // 渲染今日课程
+        function renderTodayCourses() {
+            const container = document.getElementById('todayCourses');
+            const todayIndex = getTodayDayIndex();
+            const todayCourses = scheduleData.courses
+                .filter(c => c.week === currentWeek && c.day === todayIndex + 1)
+                .sort((a, b) => a.start - b.start);
+
+            if (todayCourses.length === 0) {
+                container.innerHTML = '<div class="text-center py-6 text-gray-400"><i class="fa fa-coffee text-3xl mb-2 block"></i><p class="text-sm">今天没有课程，好好休息吧~</p></div>';
+                return;
+            }
+
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTime = currentHour * 60 + currentMinute;
+
+            const timeMap = {
+                1: { start: '08:00', end: '09:40', startMin: 480, endMin: 580 },
+                3: { start: '10:00', end: '11:40', startMin: 600, endMin: 700 },
+                5: { start: '14:00', end: '15:40', startMin: 840, endMin: 940 },
+                7: { start: '16:00', end: '17:40', startMin: 960, endMin: 1060 },
+                9: { start: '19:00', end: '21:30', startMin: 1140, endMin: 1290 }
+            };
+
+            container.innerHTML = todayCourses.map(course => {
+                const t = timeMap[course.start];
+                let status = '';
+                let statusClass = '';
+                
+                if (currentTime < t.startMin) {
+                    status = '待开始';
+                    statusClass = 'bg-gray-100 text-gray-600';
+                } else if (currentTime > t.endMin) {
+                    status = '已结束';
+                    statusClass = 'bg-gray-100 text-gray-400';
+                } else {
+                    status = '进行中';
+                    statusClass = 'bg-green-100 text-green-600';
+                }
+
+                return '<div class="flex items-center gap-3 p-3 bg-white/70 rounded-xl border border-gray-100/70">' +
+                    '<div class="w-1 h-12 rounded-full bg-' + course.color + '"></div>' +
+                    '<div class="flex-1">' +
+                    '<div class="flex items-center gap-2"><span class="font-semibold text-gray-800">' + course.name + '</span>' +
+                    '<span class="text-xs px-2 py-0.5 rounded-full ' + statusClass + '">' + status + '</span></div>' +
+                    '<div class="text-sm text-gray-500 mt-1 flex items-center gap-3">' +
+                    '<span><i class="fa fa-clock-o mr-1"></i>' + t.start + '-' + t.end + '</span>' +
+                    '<span><i class="fa fa-map-marker mr-1"></i>' + course.location + '</span>' +
+                    (course.teacher ? '<span><i class="fa fa-user mr-1"></i>' + course.teacher + '</span>' : '') +
+                    '</div></div></div>';
+            }).join('');
+        }
+
+        // 渲染统计数据
+        function renderStats() {
+            const weekCourses = scheduleData.courses.filter(c => c.week === currentWeek);
+            const locations = new Set(weekCourses.map(c => c.location));
+            const teachers = new Set(weekCourses.filter(c => c.teacher).map(c => c.teacher));
+            const totalHours = weekCourses.reduce((sum, c) => sum + c.duration, 0);
+
+            document.getElementById('statTotal').textContent = weekCourses.length;
+            document.getElementById('statHours').textContent = totalHours;
+            document.getElementById('statLocations').textContent = locations.size;
+            document.getElementById('statTeachers').textContent = teachers.size;
+        }
+
+        // 切换编辑模式
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            const btnText = document.getElementById('editBtnText');
+            const editHints = document.querySelectorAll('.edit-hint');
+            const editables = document.querySelectorAll('.editable');
+
+            if (isEditMode) {
+                btnText.textContent = '完成编辑';
+                document.getElementById('editToggle').classList.add('bg-green-600');
+                document.getElementById('editToggle').classList.remove('bg-primary');
+                editHints.forEach(h => h.classList.remove('hidden'));
+                editables.forEach(el => {
+                    el.contentEditable = true;
+                    el.classList.add('editable');
+                });
+                showToast('已进入编辑模式，点击内容即可修改');
+            } else {
+                btnText.textContent = '编辑模式';
+                document.getElementById('editToggle').classList.remove('bg-green-600');
+                document.getElementById('editToggle').classList.add('bg-primary');
+                editHints.forEach(h => h.classList.add('hidden'));
+                editables.forEach(el => {
+                    el.contentEditable = false;
+                    el.classList.remove('editing');
+                });
+                // 保存基本信息
+                scheduleData.info.name = document.querySelector('[data-field="name"]').textContent;
+                scheduleData.info.department = document.querySelector('[data-field="department"]').textContent;
+                scheduleData.info.major = document.querySelector('[data-field="major"]').textContent;
+                scheduleData.info.grade = document.querySelector('[data-field="grade"]').textContent;
+                saveData();
+            }
+            renderSchedule();
+        }
+
+        // 打开添加课程弹窗
+        function openAddModal(day, section) {
+            document.getElementById('modalTitle').textContent = '添加课程';
+            document.getElementById('courseId').value = '';
+            document.getElementById('courseDay').value = day;
+            document.getElementById('courseSection').value = section;
+            document.getElementById('courseWeek').value = currentWeek;
+            document.getElementById('courseName').value = '';
+            document.getElementById('courseLocation').value = '';
+            document.getElementById('courseTeacher').value = '';
+            document.getElementById('courseStart').value = section;
+            document.getElementById('courseDuration').value = '2';
+            document.getElementById('deleteCourse').classList.add('hidden');
+            
+            // 重置颜色选择
+            selectedColor = 'course1';
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-course1', 'ring-course2', 'ring-course3', 'ring-course4', 'ring-course5', 'ring-course6');
+                if (btn.dataset.color === selectedColor) {
+                    btn.classList.add('ring-2', 'ring-offset-2', 'ring-' + selectedColor);
+                }
+            });
+
+            document.getElementById('courseModal').classList.remove('hidden');
+        }
+
+        // 打开编辑课程弹窗
+        function openEditModal(course) {
+            document.getElementById('modalTitle').textContent = '编辑课程';
+            document.getElementById('courseId').value = course.id;
+            document.getElementById('courseDay').value = course.day;
+            document.getElementById('courseSection').value = course.start;
+            document.getElementById('courseWeek').value = course.week;
+            document.getElementById('courseName').value = course.name;
+            document.getElementById('courseLocation').value = course.location;
+            document.getElementById('courseTeacher').value = course.teacher || '';
+            document.getElementById('courseStart').value = course.start;
+            document.getElementById('courseDuration').value = course.duration;
+            document.getElementById('deleteCourse').classList.remove('hidden');
+            
+            // 设置颜色选择
+            selectedColor = course.color;
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-course1', 'ring-course2', 'ring-course3', 'ring-course4', 'ring-course5', 'ring-course6');
+                if (btn.dataset.color === selectedColor) {
+                    btn.classList.add('ring-2', 'ring-offset-2', 'ring-' + selectedColor);
+                }
+            });
+
+            document.getElementById('courseModal').classList.remove('hidden');
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('courseModal').classList.add('hidden');
+        }
+
+        // 保存课程
+        function saveCourse() {
+            const id = document.getElementById('courseId').value;
+            const name = document.getElementById('courseName').value.trim();
+            const location = document.getElementById('courseLocation').value.trim();
+            const teacher = document.getElementById('courseTeacher').value.trim();
+            const day = parseInt(document.getElementById('courseDay').value);
+            const start = parseInt(document.getElementById('courseStart').value);
+            const duration = parseInt(document.getElementById('courseDuration').value);
+            const week = parseInt(document.getElementById('courseWeek').value);
+
+            if (!name) {
+                showToast('请输入课程名称');
+                return;
+            }
+            if (!location) {
+                showToast('请输入上课地点');
+                return;
+            }
+
+            if (id) {
+                // 编辑现有课程
+                const index = scheduleData.courses.findIndex(c => c.id === parseInt(id));
+                if (index !== -1) {
+                    scheduleData.courses[index] = {
+                        id: parseInt(id),
+                        name: name,
+                        location: location,
+                        teacher: teacher,
+                        day: day,
+                        start: start,
+                        duration: duration,
+                        color: selectedColor,
+                        week: week
+                    };
+                }
+            } else {
+                // 添加新课程
+                const newId = scheduleData.courses.length > 0 ? Math.max(...scheduleData.courses.map(c => c.id)) + 1 : 1;
+                scheduleData.courses.push({
+                    id: newId,
+                    name: name,
+                    location: location,
+                    teacher: teacher,
+                    day: day,
+                    start: start,
+                    duration: duration,
+                    color: selectedColor,
+                    week: week
+                });
+            }
+
+            saveData();
+            closeModal();
+            renderSchedule();
+            renderTodayCourses();
+            renderStats();
+            showToast(id ? '课程已更新' : '课程已添加');
+        }
+
+        // 删除课程
+        function deleteCourse() {
+            const id = document.getElementById('courseId').value;
+            if (id && confirm('确定要删除这门课程吗？')) {
+                scheduleData.courses = scheduleData.courses.filter(c => c.id !== parseInt(id));
+                saveData();
+                closeModal();
+                renderSchedule();
+                renderTodayCourses();
+                renderStats();
+                showToast('课程已删除');
+            }
+        }
+
+        // 重置数据
+        function resetData() {
+            if (confirm('确定要重置所有数据吗？这将恢复到默认课表。')) {
+                scheduleData = JSON.parse(JSON.stringify(defaultData));
+                localStorage.removeItem('collegeSchedule');
+                saveData();
+                renderInfo();
+                renderSchedule();
+                renderTodayCourses();
+                renderStats();
+                showToast('数据已重置');
+            }
+        }
+
+        // 切换周次
+        function switchWeek(week) {
+            if (currentWeek === week) return; // 已经是当前周不重复操作
+            currentWeek = week;
+            document.querySelectorAll('.week-tab').forEach(tab => {
+                if (parseInt(tab.dataset.week) === week) {
+                    tab.classList.add('bg-primary', 'text-white', 'shadow-sm');
+                    tab.classList.remove('bg-white/70', 'text-gray-600', 'hover:bg-white');
+                } else {
+                    tab.classList.remove('bg-primary', 'text-white', 'shadow-sm');
+                    tab.classList.add('bg-white/70', 'text-gray-600', 'hover:bg-white');
+                }
+            });
+            renderSchedule();
+            renderTodayCourses();
+            renderStats();
+            showToast('已切换到第' + week + '周');
+        }
+
+        // 初始化事件监听
+        function initEvents() {
+            // 编辑模式切换
+            document.getElementById('editToggle').addEventListener('click', toggleEditMode);
+            
+            // 重置按钮
+            document.getElementById('resetBtn').addEventListener('click', resetData);
+            
+            // 弹窗关闭
+            document.getElementById('closeModal').addEventListener('click', closeModal);
+            document.getElementById('cancelCourse').addEventListener('click', closeModal);
+            
+            // 保存课程
+            document.getElementById('saveCourse').addEventListener('click', saveCourse);
+            
+            // 删除课程
+            document.getElementById('deleteCourse').addEventListener('click', deleteCourse);
+            
+            // 颜色选择
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectedColor = btn.dataset.color;
+                    document.querySelectorAll('.color-btn').forEach(b => {
+                        b.classList.remove('ring-2', 'ring-offset-2', 'ring-course1', 'ring-course2', 'ring-course3', 'ring-course4', 'ring-course5', 'ring-course6');
+                    });
+                    btn.classList.add('ring-2', 'ring-offset-2', 'ring-' + selectedColor);
+                });
+            });
+            
+            // 周次切换
+            document.querySelectorAll('.week-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    switchWeek(parseInt(tab.dataset.week));
+                });
+            });
+
+            // 可编辑文本失焦保存
+            document.querySelectorAll('.editable').forEach(el => {
+                el.addEventListener('blur', () => {
+                    if (isEditMode) {
+                        const field = el.dataset.field;
+                        scheduleData.info[field] = el.textContent;
+                        saveData();
+                    }
+                });
+                el.addEventListener('focus', () => {
+                    el.classList.add('editing');
+                });
+                el.addEventListener('blur', () => {
+                    el.classList.remove('editing');
+                });
+            });
+
+            // 点击弹窗外部关闭
+            document.getElementById('courseModal').addEventListener('click', (e) => {
+                if (e.target === document.getElementById('courseModal')) {
+                    closeModal();
+                }
+            });
+        }
+
+        // 初始化
+        function init() {
+            setCurrentDate();
+            renderInfo();
+            renderSchedule();
+            renderTodayCourses();
+            renderStats();
+            initEvents();
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>
