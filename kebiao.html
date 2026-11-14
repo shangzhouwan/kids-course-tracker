@@ -333,7 +333,7 @@
             state.timeSlots = JSON.parse(localStorage.getItem('tt_slots') || 'null') || [...defaultTimeSlots];
             state.courses = JSON.parse(localStorage.getItem('tt_courses') || 'null') || [...defaultCourses];
             state.studentInfo = JSON.parse(localStorage.getItem('tt_info') || 'null') || {
-                name: '张同学', department: '计算机学院', major: '软件工程专业', grade: '2024级'
+                name: '雪鹏', department: '计算机学院', major: '软件工程专业', grade: '2000级'
             };
             
             $('studentName').textContent = state.studentInfo.name;
@@ -662,7 +662,7 @@
             if (confirm('确定重置为默认课表吗？所有自定义数据将丢失。')) {
                 state.timeSlots = [...defaultTimeSlots];
                 state.courses = [...defaultCourses];
-                state.studentInfo = {name: '张同学', department: '计算机学院', major: '软件工程专业', grade: '2024级'};
+                state.studentInfo = {name: '雪鹏', department: '计算机学院', major: '软件工程专业', grade: '2000级'};
                 $('studentName').textContent = state.studentInfo.name;
                 $('department').textContent = state.studentInfo.department;
                 $('major').textContent = state.studentInfo.major;
