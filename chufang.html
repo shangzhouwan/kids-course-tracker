@@ -269,6 +269,12 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <button onclick="showPatientManage()" class="px-4 py-2 text-sm text-[rgb(var(--secondary-rgb))] hover:bg-green-50 rounded-lg transition flex items-center gap-2 font-medium">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    患者管理
+                </button>
                 <button onclick="showDrugManage()" class="px-4 py-2 text-sm text-[rgb(var(--primary-rgb))] hover:bg-blue-50 rounded-lg transition flex items-center gap-2 font-medium">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
@@ -298,27 +304,44 @@
             <div class="lg:col-span-1 space-y-6 no-print">
                 <!-- 患者信息卡片 -->
                 <div class="bg-white rounded-xl card-shadow p-5">
-                    <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-[rgb(var(--primary-rgb))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
-                        患者信息
-                    </h2>
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-[rgb(var(--primary-rgb))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            患者信息
+                        </h2>
+                        <div class="relative" id="patientSearchWrap">
+                            <input type="text" id="patientQuickSearch" class="form-input w-40 text-sm pl-8" placeholder="搜索患者..." oninput="quickSearchPatient(this.value)" onfocus="quickSearchPatient(this.value)">
+                            <svg class="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <div id="patientSearchDropdown" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
+                                <!-- 搜索结果下拉 -->
+                            </div>
+                        </div>
+                    </div>
+                    <div id="selectedPatientInfo" class="hidden mb-3 p-2 bg-green-50 border border-green-200 rounded-lg text-xs flex items-center justify-between">
+                        <span class="text-green-700">已选择建档患者：<strong id="selectedPatientName"></strong></span>
+                        <button onclick="clearSelectedPatient()" class="text-green-600 hover:text-green-800">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
                     <div class="space-y-3">
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label for="patientName" class="block text-xs text-gray-500 mb-1">姓名 <span class="text-red-500">*</span></label>
-                                <input type="text" id="patientName" class="form-input w-full text-sm" placeholder="请输入姓名">
+                                <input type="text" id="patientName" class="form-input w-full text-sm" placeholder="请输入姓名" oninput="onPatientFieldChange()">
                             </div>
                             <div>
                                 <label for="patientAge" class="block text-xs text-gray-500 mb-1">年龄 <span class="text-red-500">*</span></label>
-                                <input type="number" id="patientAge" class="form-input w-full text-sm" placeholder="年龄">
+                                <input type="number" id="patientAge" class="form-input w-full text-sm" placeholder="年龄" oninput="onPatientFieldChange()">
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label for="patientGender" class="block text-xs text-gray-500 mb-1">性别 <span class="text-red-500">*</span></label>
-                                <select id="patientGender" class="form-input w-full text-sm">
+                                <select id="patientGender" class="form-input w-full text-sm" onchange="onPatientFieldChange()">
                                     <option value="">请选择</option>
                                     <option value="男">男</option>
                                     <option value="女">女</option>
@@ -326,8 +349,20 @@
                             </div>
                             <div>
                                 <label for="patientPhone" class="block text-xs text-gray-500 mb-1">电话</label>
-                                <input type="tel" id="patientPhone" class="form-input w-full text-sm" placeholder="联系电话">
+                                <input type="tel" id="patientPhone" class="form-input w-full text-sm" placeholder="联系电话" oninput="onPatientFieldChange()">
                             </div>
+                        </div>
+                        <div>
+                            <label for="patientIdCard" class="block text-xs text-gray-500 mb-1">身份证号</label>
+                            <input type="text" id="patientIdCard" class="form-input w-full text-sm" placeholder="身份证号（选填）">
+                        </div>
+                        <div>
+                            <label for="patientAddress" class="block text-xs text-gray-500 mb-1">住址</label>
+                            <input type="text" id="patientAddress" class="form-input w-full text-sm" placeholder="住址（选填）">
+                        </div>
+                        <div>
+                            <label for="patientAllergy" class="block text-xs text-gray-500 mb-1">过敏史</label>
+                            <input type="text" id="patientAllergy" class="form-input w-full text-sm" placeholder="如：青霉素过敏、无">
                         </div>
                         <div>
                             <label for="diagnosis" class="block text-xs text-gray-500 mb-1">临床诊断 <span class="text-red-500">*</span></label>
@@ -592,6 +627,139 @@
         </div>
     </div>
 
+    <!-- 患者管理模态框 -->
+    <div id="patientManageModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl w-full max-w-5xl max-h-[90vh] overflow-hidden modal-content flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b shrink-0">
+                <h3 class="text-lg font-bold">患者档案管理</h3>
+                <button onclick="closeModal('patientManageModal')" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Tab切换 -->
+            <div class="flex border-b shrink-0 px-4">
+                <div class="manage-tab active" data-patient-tab="list" onclick="switchPatientTab('list')">患者列表</div>
+                <div class="manage-tab" data-patient-tab="history" onclick="switchPatientTab('history')" id="patientHistoryTab" style="display:none;">就诊历史</div>
+            </div>
+            
+            <!-- 患者列表面板 -->
+            <div id="patientListPanel" class="p-4 overflow-y-auto flex-1">
+                <div class="flex gap-3 mb-4">
+                    <div class="relative flex-1">
+                        <input type="text" id="patientListSearch" class="form-input w-full text-sm pl-9" placeholder="搜索患者姓名/电话/身份证号..." oninput="renderPatientList()">
+                        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <button onclick="showAddPatientForm()" class="btn-primary px-4 py-2 text-sm text-white rounded-lg flex items-center gap-1 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        添加患者
+                    </button>
+                </div>
+                
+                <!-- 添加/编辑患者表单 -->
+                <div id="patientForm" class="hidden bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <h4 id="patientFormTitle" class="text-sm font-bold text-gray-700 mb-3">添加新患者</h4>
+                    <input type="hidden" id="editPatientId">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">姓名 <span class="text-red-500">*</span></label>
+                            <input type="text" id="formPatientName" class="form-input w-full text-sm" placeholder="患者姓名">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">性别 <span class="text-red-500">*</span></label>
+                            <select id="formPatientGender" class="form-input w-full text-sm">
+                                <option value="">请选择</option>
+                                <option value="男">男</option>
+                                <option value="女">女</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">年龄 <span class="text-red-500">*</span></label>
+                            <input type="number" id="formPatientAge" class="form-input w-full text-sm" placeholder="年龄">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">联系电话</label>
+                            <input type="tel" id="formPatientPhone" class="form-input w-full text-sm" placeholder="联系电话">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">身份证号</label>
+                            <input type="text" id="formPatientIdCard" class="form-input w-full text-sm" placeholder="身份证号">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">过敏史</label>
+                            <input type="text" id="formPatientAllergy" class="form-input w-full text-sm" placeholder="如：青霉素过敏">
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs text-gray-600 mb-1">住址</label>
+                            <input type="text" id="formPatientAddress" class="form-input w-full text-sm" placeholder="家庭住址">
+                        </div>
+                        <div class="md:col-span-3">
+                            <label class="block text-xs text-gray-600 mb-1">既往病史/备注</label>
+                            <textarea id="formPatientRemark" rows="2" class="form-input w-full text-sm resize-none" placeholder="既往病史、慢性病等备注信息"></textarea>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button onclick="hidePatientForm()" class="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">取消</button>
+                        <button onclick="savePatient()" class="btn-success px-4 py-2 text-sm text-white rounded-lg">保存</button>
+                    </div>
+                </div>
+                
+                <!-- 统计信息 -->
+                <div class="flex items-center justify-between mb-3 text-sm text-gray-500">
+                    <span>共 <strong id="patientCount" class="text-[rgb(var(--secondary-rgb))]">0</strong> 位患者档案</span>
+                </div>
+                
+                <!-- 患者列表 -->
+                <div id="patientListContainer" class="overflow-hidden rounded-lg border border-gray-200">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="py-2.5 px-3 text-left font-medium text-gray-600">姓名</th>
+                                <th class="py-2.5 px-3 text-left font-medium text-gray-600">性别</th>
+                                <th class="py-2.5 px-3 text-left font-medium text-gray-600">年龄</th>
+                                <th class="py-2.5 px-3 text-left font-medium text-gray-600">电话</th>
+                                <th class="py-2.5 px-3 text-left font-medium text-gray-600">过敏史</th>
+                                <th class="py-2.5 px-3 text-left font-medium text-gray-600">就诊次数</th>
+                                <th class="py-2.5 px-3 text-left font-medium text-gray-600">最后就诊</th>
+                                <th class="py-2.5 px-3 text-center font-medium text-gray-600 w-48">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patientTableBody">
+                            <!-- 患者列表动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- 就诊历史面板 -->
+            <div id="patientHistoryPanel" class="p-4 overflow-y-auto flex-1 hidden">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b">
+                    <div>
+                        <button onclick="switchPatientTab('list')" class="text-sm text-[rgb(var(--primary-rgb))] hover:underline flex items-center gap-1 mb-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                            返回患者列表
+                        </button>
+                        <h4 class="text-base font-bold" id="historyPatientName">患者就诊历史</h4>
+                        <p class="text-sm text-gray-500" id="historyPatientInfo"></p>
+                    </div>
+                    <button onclick="selectCurrentPatientAndOpenPresc()" class="btn-primary px-4 py-2 text-sm text-white rounded-lg flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        新开处方
+                    </button>
+                </div>
+                <div id="patientHistoryList" class="space-y-3">
+                    <!-- 就诊历史动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 药品库管理模态框 -->
     <div id="drugManageModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
         <div class="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden modal-content flex flex-col">
@@ -759,6 +927,9 @@
         let prescriptionDrugs = [];
         let prescCounter = 1;
         let nextDrugId = 31;
+        let nextPatientId = 1;
+        let selectedPatientId = null;
+        let viewingPatientId = null;
         let clinicSettings = {
             name: '康民社区卫生服务站',
             addr: 'XX市XX区XX路XX号',
@@ -769,6 +940,7 @@
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             loadDrugLibrary();
+            loadPatientDatabase();
             
             const today = new Date();
             const dateStr = today.getFullYear() + '-' + 
@@ -783,6 +955,14 @@
             loadClinicSettings();
             bindPatientEvents();
             generateQRCode();
+            
+            // 点击外部关闭患者搜索下拉
+            document.addEventListener('click', function(e) {
+                const wrap = document.getElementById('patientSearchWrap');
+                if (wrap && !wrap.contains(e.target)) {
+                    document.getElementById('patientSearchDropdown').classList.add('hidden');
+                }
+            });
         });
 
         // ========== 药品库持久化 ==========
@@ -992,6 +1172,14 @@
             });
         }
 
+        function onPatientFieldChange() {
+            // 如果手动修改了患者信息，取消已选建档患者关联
+            if (selectedPatientId) {
+                clearSelectedPatient(false);
+            }
+            updatePatientDisplay();
+        }
+
         function updatePatientDisplay() {
             document.getElementById('pNameDisplay').textContent = document.getElementById('patientName').value || '____';
             document.getElementById('pGenderDisplay').textContent = document.getElementById('patientGender').value || '____';
@@ -1029,11 +1217,15 @@
             document.getElementById('patientAge').value = '';
             document.getElementById('patientGender').value = '';
             document.getElementById('patientPhone').value = '';
+            document.getElementById('patientIdCard').value = '';
+            document.getElementById('patientAddress').value = '';
+            document.getElementById('patientAllergy').value = '';
             document.getElementById('diagnosis').value = '';
             document.getElementById('doctorAdvice').value = '';
             prescriptionDrugs = [];
             renderPrescTable();
             updatePatientDisplay();
+            clearSelectedPatient(false);
             
             const today = new Date();
             const dateStr = today.getFullYear() + '-' + 
@@ -1051,14 +1243,62 @@
             if (!diag) { showToast('请填写临床诊断'); return; }
             if (prescriptionDrugs.length === 0) { showToast('请至少添加一种药品'); return; }
             
+            // 自动建档/更新患者信息
+            let patientId = selectedPatientId;
+            const phone = document.getElementById('patientPhone').value;
+            const idCard = document.getElementById('patientIdCard').value;
+            
+            if (!patientId) {
+                // 尝试通过手机号匹配已有患者
+                if (phone) {
+                    const existing = patientDatabase.find(p => p.phone === phone);
+                    if (existing) patientId = existing.id;
+                }
+            }
+            
+            const patientData = {
+                name: name,
+                age: document.getElementById('patientAge').value,
+                gender: document.getElementById('patientGender').value,
+                phone: phone,
+                idCard: idCard,
+                address: document.getElementById('patientAddress').value,
+                allergy: document.getElementById('patientAllergy').value,
+                lastVisit: new Date().toLocaleString()
+            };
+            
+            if (patientId) {
+                // 更新现有患者
+                const p = patientDatabase.find(pt => pt.id === patientId);
+                if (p) {
+                    Object.assign(p, patientData);
+                    p.visitCount = (p.visitCount || 0) + 1;
+                }
+            } else {
+                // 新建患者档案
+                patientId = nextPatientId++;
+                patientDatabase.push({
+                    id: patientId,
+                    ...patientData,
+                    remark: '',
+                    visitCount: 1,
+                    createdAt: new Date().toLocaleString()
+                });
+                showToast('已自动为该患者建立档案');
+            }
+            savePatientDatabase();
+            
             const prescData = {
                 no: document.getElementById('prescNoDisplay').textContent,
                 date: document.getElementById('prescDate').value,
+                patientId: patientId,
                 patient: {
                     name: name,
                     age: document.getElementById('patientAge').value,
                     gender: document.getElementById('patientGender').value,
-                    phone: document.getElementById('patientPhone').value
+                    phone: phone,
+                    idCard: idCard,
+                    allergy: document.getElementById('patientAllergy').value
                 },
                 diagnosis: diag,
                 type: document.getElementById('prescType').value,
@@ -1070,9 +1310,11 @@
             
             let history = JSON.parse(localStorage.getItem('prescHistory') || '[]');
             history.unshift(prescData);
-            if (history.length > 50) history = history.slice(0, 50);
+            if (history.length > 200) history = history.slice(0, 200);
             localStorage.setItem('prescHistory', JSON.stringify(history));
             
+            selectedPatientId = patientId;
+            updateSelectedPatientDisplay();
             showToast('处方已保存');
         }
 
@@ -1452,6 +1694,369 @@
             showToast('分类已删除');
         }
 
+        // ========== 患者档案管理 ==========
+        let patientDatabase = [];
+
+        function loadPatientDatabase() {
+            const saved = localStorage.getItem('patientDatabase');
+            if (saved) {
+                patientDatabase = JSON.parse(saved);
+                nextPatientId = patientDatabase.length > 0 ? Math.max(...patientDatabase.map(p => p.id)) + 1 : 1;
+            } else {
+                patientDatabase = [];
+                savePatientDatabase();
+            }
+        }
+
+        function savePatientDatabase() {
+            localStorage.setItem('patientDatabase', JSON.stringify(patientDatabase));
+        }
+
+        // 顶部快速搜索患者
+        function quickSearchPatient(keyword) {
+            const dropdown = document.getElementById('patientSearchDropdown');
+            keyword = (keyword || '').trim().toLowerCase();
+            
+            if (!keyword) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            
+            const results = patientDatabase.filter(p => 
+                (p.name && p.name.toLowerCase().includes(keyword)) ||
+                (p.phone && p.phone.includes(keyword)) ||
+                (p.idCard && p.idCard.includes(keyword))
+            ).slice(0, 8);
+            
+            if (results.length === 0) {
+                dropdown.innerHTML = '<div class="p-3 text-sm text-gray-400 text-center">未找到匹配患者，保存处方时将自动建档</div>';
+            } else {
+                dropdown.innerHTML = results.map(p => `
+                    <div class="p-2.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" onclick="selectPatient(${p.id})">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="font-medium text-sm">${p.name}</span>
+                                <span class="text-gray-500 text-xs ml-2">${p.gender || ''} ${p.age ? p.age+'岁' : ''}</span>
+                                ${p.allergy ? `<span class="badge badge-rx ml-1">过敏:${p.allergy.substring(0,6)}</span>` : ''}
+                            </div>
+                            <span class="text-xs text-gray-400">${p.visitCount || 0}次就诊</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-0.5">${p.phone || '无电话'} · 最后就诊：${p.lastVisit || '—'}</p>
+                    </div>
+                `).join('');
+            }
+            dropdown.classList.remove('hidden');
+        }
+
+        function selectPatient(patientId) {
+            const p = patientDatabase.find(pt => pt.id === patientId);
+            if (!p) return;
+            
+            // 询问是否清空当前处方
+            if (prescriptionDrugs.length > 0 || document.getElementById('patientName').value) {
+                if (!confirm('选择患者将清空当前未保存的处方内容，是否继续？')) {
+                    document.getElementById('patientSearchDropdown').classList.add('hidden');
+                    return;
+                }
+            }
+            
+            fillPatientToForm(p);
+            document.getElementById('patientSearchDropdown').classList.add('hidden');
+            document.getElementById('patientQuickSearch').value = '';
+            showToast('已选择患者：' + p.name);
+        }
+
+        function fillPatientToForm(p) {
+            selectedPatientId = p.id;
+            document.getElementById('patientName').value = p.name || '';
+            document.getElementById('patientAge').value = p.age || '';
+            document.getElementById('patientGender').value = p.gender || '';
+            document.getElementById('patientPhone').value = p.phone || '';
+            document.getElementById('patientIdCard').value = p.idCard || '';
+            document.getElementById('patientAddress').value = p.address || '';
+            document.getElementById('patientAllergy').value = p.allergy || '';
+            document.getElementById('diagnosis').value = '';
+            document.getElementById('doctorAdvice').value = '';
+            prescriptionDrugs = [];
+            
+            // 生成新处方号
+            prescCounter++;
+            generatePrescNo();
+            generateQRCode();
+            
+            renderPrescTable();
+            updatePatientDisplay();
+            updateSelectedPatientDisplay();
+        }
+
+        function updateSelectedPatientDisplay() {
+            const info = document.getElementById('selectedPatientInfo');
+            const nameSpan = document.getElementById('selectedPatientName');
+            if (selectedPatientId) {
+                const p = patientDatabase.find(pt => pt.id === selectedPatientId);
+                if (p) {
+                    nameSpan.textContent = p.name + (p.allergy ? '（过敏史：' + p.allergy + '）' : '');
+                    info.classList.remove('hidden');
+                    return;
+                }
+            }
+            info.classList.add('hidden');
+        }
+
+        function clearSelectedPatient(clearFields = true) {
+            selectedPatientId = null;
+            document.getElementById('selectedPatientInfo').classList.add('hidden');
+            if (clearFields) {
+                document.getElementById('patientQuickSearch').value = '';
+            }
+        }
+
+        // 打开患者管理模态框
+        function showPatientManage() {
+            switchPatientTab('list');
+            renderPatientList();
+            const modal = document.getElementById('patientManageModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function switchPatientTab(tab) {
+            document.querySelectorAll('[data-patient-tab]').forEach(t => {
+                t.classList.toggle('active', t.dataset.patientTab === tab);
+            });
+            document.getElementById('patientListPanel').classList.toggle('hidden', tab !== 'list');
+            document.getElementById('patientHistoryPanel').classList.toggle('hidden', tab !== 'history');
+            document.getElementById('patientHistoryTab').style.display = tab === 'history' ? 'block' : 'none';
+        }
+
+        // 渲染患者列表
+        function renderPatientList() {
+            const tbody = document.getElementById('patientTableBody');
+            const search = (document.getElementById('patientListSearch').value || '').trim().toLowerCase();
+            
+            let filtered = patientDatabase;
+            if (search) {
+                filtered = patientDatabase.filter(p => 
+                    (p.name && p.name.toLowerCase().includes(search)) ||
+                    (p.phone && p.phone.includes(search)) ||
+                    (p.idCard && p.idCard.includes(search)) ||
+                    (p.address && p.address.toLowerCase().includes(search))
+                );
+            }
+            
+            // 按最后就诊时间倒序
+            filtered = [...filtered].sort((a, b) => {
+                const ta = a.lastVisit ? new Date(a.lastVisit).getTime() : 0;
+                const tb = b.lastVisit ? new Date(b.lastVisit).getTime() : 0;
+                return tb - ta;
+            });
+            
+            document.getElementById('patientCount').textContent = filtered.length;
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="py-10 text-center text-gray-400">${search ? '未找到匹配患者' : '暂无患者档案，保存处方时将自动建档'}</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = filtered.map(p => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-2.5 px-3 font-medium">${p.name}</td>
+                    <td class="py-2.5 px-3">${p.gender || '—'}</td>
+                    <td class="py-2.5 px-3">${p.age ? p.age+'岁' : '—'}</td>
+                    <td class="py-2.5 px-3">${p.phone || '—'}</td>
+                    <td class="py-2.5 px-3">${p.allergy ? `<span class="text-red-500 text-xs">${p.allergy}</span>` : '<span class="text-gray-400">无</span>'}</td>
+                    <td class="py-2.5 px-3"><span class="badge bg-blue-50 text-[rgb(var(--primary-rgb))]" style="background:rgba(26,99,186,0.1);color:rgb(26,99,186);">${p.visitCount || 0}次</span></td>
+                    <td class="py-2.5 px-3 text-xs text-gray-500">${p.lastVisit || '—'}</td>
+                    <td class="py-2.5 px-3 text-center">
+                        <button onclick="viewPatientHistory(${p.id})" class="text-[rgb(var(--primary-rgb))] text-xs hover:underline mx-1">历史</button>
+                        <button onclick="selectPatientFromManage(${p.id})" class="text-[rgb(var(--secondary-rgb))] text-xs hover:underline mx-1">开方</button>
+                        <button onclick="editPatient(${p.id})" class="text-gray-500 text-xs hover:underline mx-1">编辑</button>
+                        <button onclick="deletePatient(${p.id})" class="text-red-500 text-xs hover:underline mx-1">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function selectPatientFromManage(patientId) {
+            const p = patientDatabase.find(pt => pt.id === patientId);
+            if (!p) return;
+            if (prescriptionDrugs.length > 0 || document.getElementById('patientName').value) {
+                if (!confirm('选择患者将清空当前未保存的处方内容，是否继续？')) return;
+            }
+            fillPatientToForm(p);
+            closeModal('patientManageModal');
+            showToast('已选择患者：' + p.name);
+        }
+
+        function selectCurrentPatientAndOpenPresc() {
+            if (!viewingPatientId) return;
+            const p = patientDatabase.find(pt => pt.id === viewingPatientId);
+            if (!p) return;
+            fillPatientToForm(p);
+            closeModal('patientManageModal');
+            showToast('已为 ' + p.name + ' 新建处方');
+        }
+
+        function showAddPatientForm() {
+            document.getElementById('patientFormTitle').textContent = '添加新患者';
+            document.getElementById('editPatientId').value = '';
+            document.getElementById('formPatientName').value = '';
+            document.getElementById('formPatientGender').value = '';
+            document.getElementById('formPatientAge').value = '';
+            document.getElementById('formPatientPhone').value = '';
+            document.getElementById('formPatientIdCard').value = '';
+            document.getElementById('formPatientAllergy').value = '';
+            document.getElementById('formPatientAddress').value = '';
+            document.getElementById('formPatientRemark').value = '';
+            document.getElementById('patientForm').classList.remove('hidden');
+            document.getElementById('formPatientName').focus();
+        }
+
+        function editPatient(id) {
+            const p = patientDatabase.find(pt => pt.id === id);
+            if (!p) return;
+            document.getElementById('patientFormTitle').textContent = '编辑患者信息';
+            document.getElementById('editPatientId').value = id;
+            document.getElementById('formPatientName').value = p.name || '';
+            document.getElementById('formPatientGender').value = p.gender || '';
+            document.getElementById('formPatientAge').value = p.age || '';
+            document.getElementById('formPatientPhone').value = p.phone || '';
+            document.getElementById('formPatientIdCard').value = p.idCard || '';
+            document.getElementById('formPatientAllergy').value = p.allergy || '';
+            document.getElementById('formPatientAddress').value = p.address || '';
+            document.getElementById('formPatientRemark').value = p.remark || '';
+            document.getElementById('patientForm').classList.remove('hidden');
+            document.getElementById('formPatientName').focus();
+        }
+
+        function hidePatientForm() {
+            document.getElementById('patientForm').classList.add('hidden');
+        }
+
+        function savePatient() {
+            const editId = document.getElementById('editPatientId').value;
+            const name = document.getElementById('formPatientName').value.trim();
+            const gender = document.getElementById('formPatientGender').value;
+            const age = document.getElementById('formPatientAge').value;
+            const phone = document.getElementById('formPatientPhone').value.trim();
+            const idCard = document.getElementById('formPatientIdCard').value.trim();
+            const allergy = document.getElementById('formPatientAllergy').value.trim();
+            const address = document.getElementById('formPatientAddress').value.trim();
+            const remark = document.getElementById('formPatientRemark').value.trim();
+            
+            if (!name) { showToast('请输入患者姓名'); return; }
+            if (!gender) { showToast('请选择性别'); return; }
+            if (!age) { showToast('请输入年龄'); return; }
+            
+            if (editId) {
+                const p = patientDatabase.find(pt => pt.id == editId);
+                if (p) {
+                    Object.assign(p, { name, gender, age, phone, idCard, allergy, address, remark });
+                }
+                showToast('患者信息已更新');
+            } else {
+                patientDatabase.push({
+                    id: nextPatientId++,
+                    name, gender, age, phone, idCard, allergy, address, remark,
+                    visitCount: 0,
+                    createdAt: new Date().toLocaleString()
+                });
+                showToast('患者已添加');
+            }
+            
+            savePatientDatabase();
+            hidePatientForm();
+            renderPatientList();
+        }
+
+        function deletePatient(id) {
+            const p = patientDatabase.find(pt => pt.id === id);
+            if (!p) return;
+            if (!confirm(`确定要删除患者"${p.name}"的档案吗？该操作不会删除历史处方记录。`)) return;
+            
+            patientDatabase = patientDatabase.filter(pt => pt.id !== id);
+            savePatientDatabase();
+            renderPatientList();
+            
+            if (selectedPatientId === id) clearSelectedPatient();
+            showToast('患者档案已删除');
+        }
+
+        // 查看患者就诊历史
+        function viewPatientHistory(patientId) {
+            viewingPatientId = patientId;
+            const p = patientDatabase.find(pt => pt.id === patientId);
+            if (!p) return;
+            
+            document.getElementById('historyPatientName').textContent = p.name + ' 的就诊记录';
+            let infoStr = `${p.gender || ''} ${p.age ? p.age+'岁' : ''}`;
+            if (p.phone) infoStr += ' | ' + p.phone;
+            if (p.allergy) infoStr += ' | 过敏史：' + p.allergy;
+            document.getElementById('historyPatientInfo').textContent = infoStr;
+            
+            const history = JSON.parse(localStorage.getItem('prescHistory') || '[]');
+            const records = history.filter(h => h.patientId === patientId);
+            
+            const container = document.getElementById('patientHistoryList');
+            if (records.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400 py-10">该患者暂无处方记录</p>';
+            } else {
+                container.innerHTML = records.map((rec, idx) => `
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <span class="font-medium">${rec.date} 就诊</span>
+                                <span class="text-xs text-gray-400 ml-2">处方号：${rec.no}</span>
+                            </div>
+                            <span class="text-xs text-gray-400">${rec.savedAt}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 mb-2"><strong>诊断：</strong>${rec.diagnosis}</p>
+                        <div class="text-sm text-gray-600 mb-2">
+                            <strong>用药：</strong>${rec.drugs.map(d => d.name + (d.quantity ? '×'+d.quantity+d.unit : '')).join('、')}
+                        </div>
+                        ${rec.advice ? `<p class="text-xs text-gray-500"><strong>医嘱：</strong>${rec.advice}</p>` : ''}
+                        <div class="mt-2 pt-2 border-t border-gray-100">
+                            <button onclick="loadPatientPresc(${JSON.stringify(rec.no).replace(/"/g, '&quot;')})" class="text-xs text-[rgb(var(--primary-rgb))] hover:underline">加载此处方</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            switchPatientTab('history');
+        }
+
+        function loadPatientPresc(prescNo) {
+            const history = JSON.parse(localStorage.getItem('prescHistory') || '[]');
+            const p = history.find(h => h.no === prescNo);
+            if (!p) return;
+            
+            if (prescriptionDrugs.length > 0 || document.getElementById('patientName').value) {
+                if (!confirm('加载此处方将清空当前内容，是否继续？')) return;
+            }
+            
+            document.getElementById('patientName').value = p.patient.name;
+            document.getElementById('patientAge').value = p.patient.age;
+            document.getElementById('patientGender').value = p.patient.gender;
+            document.getElementById('patientPhone').value = p.patient.phone;
+            document.getElementById('patientIdCard').value = p.patient.idCard || '';
+            document.getElementById('patientAllergy').value = p.patient.allergy || '';
+            document.getElementById('diagnosis').value = p.diagnosis;
+            document.getElementById('prescType').value = p.type;
+            document.getElementById('prescDate').value = p.date;
+            document.getElementById('dateDisplay').textContent = p.date;
+            document.getElementById('doctorAdvice').value = p.advice || '';
+            document.getElementById('prescNoDisplay').textContent = p.no;
+            
+            prescriptionDrugs = [...p.drugs];
+            selectedPatientId = p.patientId;
+            renderPrescTable();
+            updatePatientDisplay();
+            updateSelectedPatientDisplay();
+            
+            closeModal('patientManageModal');
+            showToast('已加载处方：' + p.patient.name);
+        }
+
         // ========== 通用工具 ==========
         function closeModal(modalId) {
             const modal = document.getElementById(modalId);
@@ -1483,7 +2088,7 @@
         }
 
         // 点击模态框背景关闭
-        ['historyModal', 'settingsModal', 'drugManageModal'].forEach(modalId => {
+        ['historyModal', 'settingsModal', 'drugManageModal', 'patientManageModal'].forEach(modalId => {
             document.getElementById(modalId).addEventListener('click', function(e) {
                 if (e.target === this) closeModal(modalId);
             });
@@ -1492,6 +2097,11 @@
         // 回车添加分类
         document.getElementById('newCategoryName').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') addCategory();
+        });
+
+        // 回车搜索患者
+        document.getElementById('patientQuickSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') quickSearchPatient(this.value);
         });
     </script>
 </body>
