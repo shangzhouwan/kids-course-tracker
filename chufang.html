@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基层医疗电子处方系统</title>
+    <script src="https://aisearch-task.bj.bcebos.com/static/tailwindcss-3.4.17.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --primary-rgb: 26, 99, 186;
+            --primary-color: rgb(var(--primary-rgb));
+            --secondary-rgb: 56, 161, 105;
+            --secondary-color: rgb(var(--secondary-rgb));
+            --accent-rgb: 229, 62, 62;
+            --accent-color: rgb(var(--accent-rgb));
+            --card-bg: #ffffff;
+            --bg-page: #f0f5fa;
+        }
+
+        * {
+            font-family: 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f0f5fa 0%, #e8f0f8 50%, #f5f9fc 100%);
+            min-height: 100vh;
+        }
+
+        .prescription-paper {
+            background: #fff;
+            background-image: 
+                linear-gradient(rgba(26, 99, 186, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(26, 99, 186, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .rx-symbol {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 48px;
+            font-style: italic;
+            color: var(--primary-color);
+            line-height: 1;
+        }
+
+        .drug-row:hover {
+            background-color: rgba(26, 99, 186, 0.04);
+        }
+
+        .tab-active {
+            background: linear-gradient(135deg, var(--primary-color), #1e6fb8);
+            color: white;
+            box-shadow: 0 4px 12px rgba(26, 99, 186, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), #1e6fb8);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(26, 99, 186, 0.35);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--secondary-color), #38a169);
+            transition: all 0.3s ease;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(56, 161, 105, 0.35);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-color), #e53e3e);
+            transition: all 0.3s ease;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(229, 62, 62, 0.35);
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white;
+            }
+            .prescription-paper {
+                box-shadow: none;
+                margin: 0;
+                padding: 20px;
+            }
+        }
+
+        .drug-tag {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .signature-line {
+            border-bottom: 1px solid #333;
+            min-width: 120px;
+            display: inline-block;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(26, 99, 186, 0.1);
+        }
+
+        .form-input {
+            border: 1px solid #d1dce8;
+            border-radius: 6px;
+            padding: 8px 12px;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .form-input:hover {
+            border-color: #a8c2e0;
+        }
+
+        .card-shadow {
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-otc {
+            background: rgba(56, 161, 105, 0.1);
+            color: var(--secondary-color);
+        }
+
+        .badge-rx {
+            background: rgba(229, 62, 62, 0.1);
+            color: var(--accent-color);
+        }
+
+        /* 模态框动画 */
+        .modal-content {
+            animation: modalIn 0.2s ease;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* 分类管理标签样式 */
+        .cat-manage-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: #f0f5fa;
+            border-radius: 6px;
+            font-size: 13px;
+            margin: 2px;
+        }
+
+        .cat-manage-tag .cat-actions {
+            display: none;
+            gap: 2px;
+        }
+
+        .cat-manage-tag:hover .cat-actions {
+            display: inline-flex;
+        }
+
+        .icon-btn {
+            width: 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(0,0,0,0.08);
+        }
+
+        /* Tab切换 */
+        .manage-tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #666;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .manage-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .manage-tab:hover:not(.active) {
+            color: #333;
+            background: #f8fafc;
+        }
+
+        /* 药品管理列表 */
+        .drug-manage-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+
+        .drug-manage-item:hover {
+            border-color: var(--primary-color);
+            background: #f8fafc;
+        }
+
+        .inline-edit-input {
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 13px;
+            width: 100%;
+        }
+
+        .inline-edit-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(26,99,186,0.1);
+            outline: none;
+        }
+    </style>
+</head>
+<body class="pb-8">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50 no-print">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-[rgb(var(--primary-rgb))] flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-gray-800">基层医疗电子处方系统</h1>
+                    <p class="text-xs text-gray-500">个体诊所 · 卫生室 · 社区卫生服务站</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="showDrugManage()" class="px-4 py-2 text-sm text-[rgb(var(--primary-rgb))] hover:bg-blue-50 rounded-lg transition flex items-center gap-2 font-medium">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                    </svg>
+                    药品库管理
+                </button>
+                <button onclick="showHistory()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    历史处方
+                </button>
+                <button onclick="showClinicSettings()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    诊所设置
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 mt-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧：患者信息 + 药品库 -->
+            <div class="lg:col-span-1 space-y-6 no-print">
+                <!-- 患者信息卡片 -->
+                <div class="bg-white rounded-xl card-shadow p-5">
+                    <h2 class="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-[rgb(var(--primary-rgb))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        患者信息
+                    </h2>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="patientName" class="block text-xs text-gray-500 mb-1">姓名 <span class="text-red-500">*</span></label>
+                                <input type="text" id="patientName" class="form-input w-full text-sm" placeholder="请输入姓名">
+                            </div>
+                            <div>
+                                <label for="patientAge" class="block text-xs text-gray-500 mb-1">年龄 <span class="text-red-500">*</span></label>
+                                <input type="number" id="patientAge" class="form-input w-full text-sm" placeholder="年龄">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="patientGender" class="block text-xs text-gray-500 mb-1">性别 <span class="text-red-500">*</span></label>
+                                <select id="patientGender" class="form-input w-full text-sm">
+                                    <option value="">请选择</option>
+                                    <option value="男">男</option>
+                                    <option value="女">女</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="patientPhone" class="block text-xs text-gray-500 mb-1">电话</label>
+                                <input type="tel" id="patientPhone" class="form-input w-full text-sm" placeholder="联系电话">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="diagnosis" class="block text-xs text-gray-500 mb-1">临床诊断 <span class="text-red-500">*</span></label>
+                            <textarea id="diagnosis" rows="2" class="form-input w-full text-sm resize-none" placeholder="请输入临床诊断"></textarea>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label for="prescDate" class="block text-xs text-gray-500 mb-1">处方日期</label>
+                                <input type="date" id="prescDate" class="form-input w-full text-sm">
+                            </div>
+                            <div>
+                                <label for="prescType" class="block text-xs text-gray-500 mb-1">处方类型</label>
+                                <select id="prescType" class="form-input w-full text-sm">
+                                    <option value="普通处方">普通处方</option>
+                                    <option value="急诊处方">急诊处方</option>
+                                    <option value="儿科处方">儿科处方</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 常用药品库 -->
+                <div class="bg-white rounded-xl card-shadow p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-[rgb(var(--primary-rgb))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                            </svg>
+                            常用药品库
+                        </h2>
+                        <button onclick="showDrugManage()" class="text-xs text-[rgb(var(--primary-rgb))] hover:underline flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            管理
+                        </button>
+                    </div>
+                    <div class="mb-3">
+                        <label for="drugSearch" class="sr-only">搜索药品</label>
+                        <div class="relative">
+                            <input type="text" id="drugSearch" class="form-input w-full text-sm pl-9" placeholder="搜索药品名称" oninput="searchDrugs()">
+                            <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <!-- 药品分类标签 -->
+                    <div id="categoryTabs" class="flex flex-wrap gap-2 mb-3">
+                        <!-- 分类标签动态生成 -->
+                    </div>
+                    <div id="drugList" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+                        <!-- 药品列表动态生成 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：处方笺主区域 -->
+            <div class="lg:col-span-2">
+                <!-- 操作工具栏 -->
+                <div class="bg-white rounded-xl card-shadow p-4 mb-4 no-print">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <button onclick="newPrescription()" class="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                新建处方
+                            </button>
+                            <button onclick="clearAll()" class="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                清空
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="savePrescription()" class="btn-success px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                                </svg>
+                                保存处方
+                            </button>
+                            <button onclick="window.print()" class="btn-primary px-4 py-2 text-sm text-white rounded-lg transition flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                                </svg>
+                                打印处方
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 处方笺 -->
+                <div id="prescriptionPaper" class="prescription-paper rounded-xl p-6 md:p-8">
+                    <!-- 处方头部 -->
+                    <div class="border-b-2 border-[rgb(var(--primary-rgb))] pb-4 mb-6">
+                        <div class="flex justify-between items-start">
+                            <div class="flex items-start gap-4">
+                                <div class="rx-symbol">℞</div>
+                                <div>
+                                    <h1 id="clinicNameDisplay" class="text-xl md:text-2xl font-bold text-gray-800">康民社区卫生服务站</h1>
+                                    <p id="clinicAddrDisplay" class="text-sm text-gray-600 mt-1">地址：XX市XX区XX路XX号 | 电话：0XX-XXXXXXXX</p>
+                                    <h2 class="text-lg font-semibold text-gray-700 mt-2">处方笺</h2>
+                                </div>
+                            </div>
+                            <div class="text-right text-sm">
+                                <p class="text-gray-600">处方编号：<span id="prescNoDisplay" class="font-mono font-medium">202611230001</span></p>
+                                <p class="text-gray-600 mt-1">日期：<span id="dateDisplay"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 患者信息显示 -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
+                        <div>
+                            <span class="text-gray-500">姓名：</span>
+                            <span id="pNameDisplay" class="font-medium"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">性别：</span>
+                            <span id="pGenderDisplay" class="font-medium"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">年龄：</span>
+                            <span id="pAgeDisplay" class="font-medium"></span>岁
+                        </div>
+                        <div>
+                            <span class="text-gray-500">电话：</span>
+                            <span id="pPhoneDisplay" class="font-medium"></span>
+                        </div>
+                        <div class="col-span-2 md:col-span-4">
+                            <span class="text-gray-500">临床诊断：</span>
+                            <span id="diagDisplay" class="font-medium"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">处方类型：</span>
+                            <span id="prescTypeDisplay" class="font-medium"></span>
+                        </div>
+                    </div>
+
+                    <!-- Rp. 标识 -->
+                    <div class="text-xl font-bold text-gray-800 mb-3">Rp.</div>
+
+                    <!-- 药品表格 -->
+                    <div class="border border-gray-300 rounded-lg overflow-hidden mb-6">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b border-gray-300">
+                                <tr>
+                                    <th class="py-2 px-3 text-left font-medium text-gray-600 w-8">序号</th>
+                                    <th class="py-2 px-3 text-left font-medium text-gray-600">药品名称及规格</th>
+                                    <th class="py-2 px-3 text-center font-medium text-gray-600 w-20">数量</th>
+                                    <th class="py-2 px-3 text-left font-medium text-gray-600">用法用量</th>
+                                    <th class="py-2 px-3 text-center font-medium text-gray-600 w-10 no-print"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="drugTableBody">
+                                <tr class="empty-row">
+                                    <td colspan="5" class="py-8 text-center text-gray-400">请从左侧药品库选择药品，或点击下方"添加药品"</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 添加药品按钮 -->
+                    <div class="mb-6 no-print">
+                        <button onclick="addCustomDrug()" class="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-[rgb(var(--primary-rgb))] hover:text-[rgb(var(--primary-rgb))] transition flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            自定义添加药品
+                        </button>
+                    </div>
+
+                    <!-- 医嘱 -->
+                    <div class="mb-6">
+                        <label for="doctorAdvice" class="block text-sm font-medium text-gray-700 mb-2">医嘱 / 注意事项：</label>
+                        <textarea id="doctorAdvice" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:border-[rgb(var(--primary-rgb))] focus:ring-2 focus:ring-[rgba(var(--primary-rgb),0.1)]" placeholder="如：忌辛辣刺激食物，多饮温水，注意休息，如有不适及时就诊。"></textarea>
+                    </div>
+
+                    <!-- 签名区域 -->
+                    <div class="grid grid-cols-3 gap-8 mt-10 pt-6 border-t border-gray-200 text-sm">
+                        <div>
+                            <p class="text-gray-500 mb-2">医师签名：</p>
+                            <p class="pt-4"><span class="signature-line" id="doctorSigDisplay"></span></p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 mb-2">调配：</p>
+                            <p class="pt-4"><span class="signature-line"></span></p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 mb-2">核对/发药：</p>
+                            <p class="pt-4"><span class="signature-line"></span></p>
+                        </div>
+                    </div>
+
+                    <!-- 底部说明 -->
+                    <div class="mt-6 pt-4 border-t border-dashed border-gray-300 text-xs text-gray-500 flex flex-wrap justify-between gap-2">
+                        <div>
+                            <p>※ 本处方仅限本机构使用，当日有效</p>
+                            <p>※ 药品请遵医嘱使用，特殊人群请在医师指导下用药</p>
+                        </div>
+                        <div id="qrcode" class="w-16 h-16 bg-gray-100 rounded flex items-center justify-center">
+                            <!-- 二维码将在这里生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 历史处方模态框 -->
+    <div id="historyModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl w-full max-w-2xl max-h-[80vh] overflow-hidden modal-content">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h3 class="text-lg font-bold">历史处方记录</h3>
+                <button onclick="closeModal('historyModal')" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="historyList" class="p-4 overflow-y-auto max-h-[60vh]">
+                <p class="text-center text-gray-400 py-8">暂无保存的处方记录</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 诊所设置模态框 -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl w-full max-w-lg modal-content">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h3 class="text-lg font-bold">诊所信息设置</h3>
+                <button onclick="closeModal('settingsModal')" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-4 space-y-4">
+                <div>
+                    <label for="settingClinicName" class="block text-sm text-gray-600 mb-1">诊所名称</label>
+                    <input type="text" id="settingClinicName" class="form-input w-full text-sm" placeholder="诊所/卫生室名称">
+                </div>
+                <div>
+                    <label for="settingClinicAddr" class="block text-sm text-gray-600 mb-1">诊所地址</label>
+                    <input type="text" id="settingClinicAddr" class="form-input w-full text-sm" placeholder="诊所地址">
+                </div>
+                <div>
+                    <label for="settingClinicPhone" class="block text-sm text-gray-600 mb-1">联系电话</label>
+                    <input type="text" id="settingClinicPhone" class="form-input w-full text-sm" placeholder="联系电话">
+                </div>
+                <div>
+                    <label for="settingDoctorName" class="block text-sm text-gray-600 mb-1">医师姓名</label>
+                    <input type="text" id="settingDoctorName" class="form-input w-full text-sm" placeholder="医师姓名">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button onclick="closeModal('settingsModal')" class="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">取消</button>
+                    <button onclick="saveClinicSettings()" class="btn-primary px-4 py-2 text-sm text-white rounded-lg">保存设置</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 药品库管理模态框 -->
+    <div id="drugManageModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden modal-content flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b shrink-0">
+                <h3 class="text-lg font-bold">药品库管理</h3>
+                <button onclick="closeModal('drugManageModal')" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Tab切换 -->
+            <div class="flex border-b shrink-0 px-4">
+                <div class="manage-tab active" data-tab="drugs" onclick="switchManageTab('drugs')">药品管理</div>
+                <div class="manage-tab" data-tab="categories" onclick="switchManageTab('categories')">分类管理</div>
+                <div class="ml-auto flex items-center pr-2">
+                    <button onclick="resetDrugLibrary()" class="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1" title="恢复默认药品库">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        恢复默认
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 药品管理面板 -->
+            <div id="drugsPanel" class="p-4 overflow-y-auto flex-1">
+                <!-- 搜索和添加 -->
+                <div class="flex gap-3 mb-4">
+                    <div class="relative flex-1">
+                        <input type="text" id="manageDrugSearch" class="form-input w-full text-sm pl-9" placeholder="搜索药品..." oninput="renderManageDrugList()">
+                        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <select id="manageCategoryFilter" class="form-input text-sm" onchange="renderManageDrugList()">
+                        <option value="all">全部分类</option>
+                    </select>
+                    <button onclick="showAddDrugForm()" class="btn-primary px-4 py-2 text-sm text-white rounded-lg flex items-center gap-1 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        添加药品
+                    </button>
+                </div>
+                
+                <!-- 添加/编辑药品表单 -->
+                <div id="drugForm" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <h4 id="drugFormTitle" class="text-sm font-bold text-gray-700 mb-3">添加新药品</h4>
+                    <input type="hidden" id="editDrugId">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">药品名称 <span class="text-red-500">*</span></label>
+                            <input type="text" id="formDrugName" class="form-input w-full text-sm" placeholder="如：阿莫西林胶囊">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">规格</label>
+                            <input type="text" id="formDrugSpec" class="form-input w-full text-sm" placeholder="如：0.5g*24粒">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">分类 <span class="text-red-500">*</span></label>
+                            <select id="formDrugCat" class="form-input w-full text-sm">
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">处方类型</label>
+                            <select id="formDrugType" class="form-input w-full text-sm">
+                                <option value="Rx">处方药（Rx）</option>
+                                <option value="OTC">非处方药（OTC）</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">单位</label>
+                            <select id="formDrugUnit" class="form-input w-full text-sm">
+                                <option value="盒">盒</option>
+                                <option value="瓶">瓶</option>
+                                <option value="支">支</option>
+                                <option value="袋">袋</option>
+                                <option value="片">片</option>
+                                <option value="粒">粒</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">默认用法用量</label>
+                            <input type="text" id="formDrugDosage" class="form-input w-full text-sm" placeholder="如：口服，一次0.5g，一日3次">
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button onclick="hideDrugForm()" class="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">取消</button>
+                        <button onclick="saveDrug()" class="btn-primary px-4 py-2 text-sm text-white rounded-lg">保存</button>
+                    </div>
+                </div>
+                
+                <!-- 药品列表 -->
+                <div id="manageDrugList" class="space-y-0">
+                    <!-- 药品列表动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 分类管理面板 -->
+            <div id="categoriesPanel" class="p-4 overflow-y-auto flex-1 hidden">
+                <div class="mb-4">
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="newCategoryName" class="form-input flex-1 text-sm" placeholder="输入新分类名称">
+                        <button onclick="addCategory()" class="btn-primary px-4 py-2 text-sm text-white rounded-lg flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            添加分类
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-3">提示：鼠标悬停在分类上可进行重命名或删除操作；删除分类时该分类下的药品将移至第一个分类。</p>
+                </div>
+                <div id="categoryList" class="space-y-2">
+                    <!-- 分类列表动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg z-[100] hidden text-sm"></div>
+
+    <script>
+        // 默认药品数据
+        const defaultDrugs = [
+            { id:1, name:'阿莫西林胶囊', spec:'0.5g*24粒', cat:'抗生素', type:'Rx', dosage:'口服，一次0.5g，一日3次', unit:'盒' },
+            { id:2, name:'头孢克肟分散片', spec:'0.1g*12片', cat:'抗生素', type:'Rx', dosage:'口服，一次0.1g，一日2次', unit:'盒' },
+            { id:3, name:'阿奇霉素片', spec:'0.25g*6片', cat:'抗生素', type:'Rx', dosage:'口服，一次0.5g，一日1次', unit:'盒' },
+            { id:4, name:'左氧氟沙星片', spec:'0.5g*4片', cat:'抗生素', type:'Rx', dosage:'口服，一次0.5g，一日1次', unit:'盒' },
+            { id:5, name:'罗红霉素胶囊', spec:'150mg*12粒', cat:'抗生素', type:'Rx', dosage:'口服，一次150mg，一日2次', unit:'盒' },
+            { id:6, name:'甲硝唑片', spec:'0.2g*100片', cat:'抗生素', type:'Rx', dosage:'口服，一次0.2-0.4g，一日3次', unit:'瓶' },
+            { id:7, name:'复方氨酚烷胺胶囊', spec:'12粒', cat:'感冒退热', type:'OTC', dosage:'口服，一次1粒，一日2次', unit:'盒' },
+            { id:8, name:'布洛芬缓释胶囊', spec:'0.3g*20粒', cat:'感冒退热', type:'OTC', dosage:'口服，一次0.3g，一日2次', unit:'盒' },
+            { id:9, name:'对乙酰氨基酚片', spec:'0.5g*12片', cat:'感冒退热', type:'OTC', dosage:'口服，一次0.5g，发热时服用', unit:'瓶' },
+            { id:10, name:'连花清瘟胶囊', spec:'0.35g*48粒', cat:'感冒退热', type:'OTC', dosage:'口服，一次4粒，一日3次', unit:'盒' },
+            { id:11, name:'感冒灵颗粒', spec:'10g*9袋', cat:'感冒退热', type:'OTC', dosage:'开水冲服，一次1袋，一日3次', unit:'盒' },
+            { id:12, name:'小儿氨酚黄那敏颗粒', spec:'6g*10袋', cat:'感冒退热', type:'OTC', dosage:'温水冲服，儿童按年龄体重酌减', unit:'盒' },
+            { id:13, name:'蜜炼川贝枇杷膏', spec:'150ml', cat:'感冒退热', type:'OTC', dosage:'口服，一次15ml，一日3次', unit:'瓶' },
+            { id:14, name:'氯雷他定片', spec:'10mg*6片', cat:'感冒退热', type:'OTC', dosage:'口服，一次10mg，一日1次', unit:'盒' },
+            { id:15, name:'奥美拉唑肠溶胶囊', spec:'20mg*14粒', cat:'消化系统', type:'OTC', dosage:'口服，一次20mg，一日1-2次', unit:'盒' },
+            { id:16, name:'多潘立酮片', spec:'10mg*30片', cat:'消化系统', type:'OTC', dosage:'餐前15-30分钟口服，一次10mg，一日3次', unit:'盒' },
+            { id:17, name:'蒙脱石散', spec:'3g*10袋', cat:'消化系统', type:'OTC', dosage:'口服，一次1袋，一日3次', unit:'盒' },
+            { id:18, name:'健胃消食片', spec:'0.8g*32片', cat:'消化系统', type:'OTC', dosage:'口服，一次3片，一日3次', unit:'盒' },
+            { id:19, name:'盐酸小檗碱片', spec:'0.1g*24片', cat:'消化系统', type:'OTC', dosage:'口服，一次0.1-0.3g，一日3次', unit:'瓶' },
+            { id:20, name:'开塞露', spec:'20ml*2支', cat:'消化系统', type:'OTC', dosage:'外用，一次1支，直肠给药', unit:'盒' },
+            { id:21, name:'硝苯地平缓释片', spec:'20mg*30片', cat:'心脑血管', type:'Rx', dosage:'口服，一次20mg，一日2次', unit:'盒' },
+            { id:22, name:'缬沙坦胶囊', spec:'80mg*7粒', cat:'心脑血管', type:'Rx', dosage:'口服，一次80mg，一日1次', unit:'盒' },
+            { id:23, name:'阿司匹林肠溶片', spec:'100mg*30片', cat:'心脑血管', type:'Rx', dosage:'口服，一次100mg，一日1次', unit:'盒' },
+            { id:24, name:'复方丹参片', spec:'60片', cat:'心脑血管', type:'OTC', dosage:'口服，一次3片，一日3次', unit:'瓶' },
+            { id:25, name:'酒石酸美托洛尔片', spec:'25mg*20片', cat:'心脑血管', type:'Rx', dosage:'口服，一次25mg，一日2次', unit:'盒' },
+            { id:26, name:'云南白药气雾剂', spec:'85g+30g', cat:'外用药', type:'OTC', dosage:'外用，喷于伤患处，一日3-5次', unit:'盒' },
+            { id:27, name:'莫匹罗星软膏', spec:'2%*5g', cat:'外用药', type:'OTC', dosage:'外用，涂于患处，一日3次', unit:'支' },
+            { id:28, name:'红霉素软膏', spec:'1%*10g', cat:'外用药', type:'OTC', dosage:'外用，涂于患处，一日2次', unit:'支' },
+            { id:29, name:'双氯芬酸二乙胺乳胶剂', spec:'20g', cat:'外用药', type:'OTC', dosage:'外用，涂于患处，一日3-4次', unit:'支' },
+            { id:30, name:'碘伏消毒液', spec:'100ml', cat:'外用药', type:'OTC', dosage:'外用，消毒患处', unit:'瓶' }
+        ];
+
+        const defaultCategories = ['抗生素', '感冒退热', '消化系统', '心脑血管', '外用药'];
+
+        let drugDatabase = [];
+        let categories = [];
+        let currentCategory = 'all';
+        let prescriptionDrugs = [];
+        let prescCounter = 1;
+        let nextDrugId = 31;
+        let clinicSettings = {
+            name: '康民社区卫生服务站',
+            addr: 'XX市XX区XX路XX号',
+            phone: '0XX-XXXXXXXX',
+            doctor: '张医生'
+        };
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDrugLibrary();
+            
+            const today = new Date();
+            const dateStr = today.getFullYear() + '-' + 
+                           String(today.getMonth()+1).padStart(2,'0') + '-' + 
+                           String(today.getDate()).padStart(2,'0');
+            document.getElementById('prescDate').value = dateStr;
+            document.getElementById('dateDisplay').textContent = dateStr;
+            
+            generatePrescNo();
+            renderCategoryTabs();
+            renderDrugList();
+            loadClinicSettings();
+            bindPatientEvents();
+            generateQRCode();
+        });
+
+        // ========== 药品库持久化 ==========
+        function loadDrugLibrary() {
+            const savedDrugs = localStorage.getItem('drugDatabase');
+            const savedCats = localStorage.getItem('drugCategories');
+            
+            if (savedDrugs && savedCats) {
+                drugDatabase = JSON.parse(savedDrugs);
+                categories = JSON.parse(savedCats);
+                nextDrugId = Math.max(...drugDatabase.map(d => d.id), 30) + 1;
+            } else {
+                drugDatabase = JSON.parse(JSON.stringify(defaultDrugs));
+                categories = [...defaultCategories];
+                saveDrugLibrary();
+            }
+        }
+
+        function saveDrugLibrary() {
+            localStorage.setItem('drugDatabase', JSON.stringify(drugDatabase));
+            localStorage.setItem('drugCategories', JSON.stringify(categories));
+        }
+
+        function resetDrugLibrary() {
+            if (!confirm('确定要恢复默认药品库吗？这将删除您自定义添加的所有药品和分类。')) return;
+            drugDatabase = JSON.parse(JSON.stringify(defaultDrugs));
+            categories = [...defaultCategories];
+            nextDrugId = 31;
+            saveDrugLibrary();
+            currentCategory = 'all';
+            renderCategoryTabs();
+            renderDrugList();
+            renderManageCategoryList();
+            renderManageDrugList();
+            updateCategorySelects();
+            showToast('已恢复默认药品库');
+        }
+
+        // ========== 分类标签渲染（开方界面） ==========
+        function renderCategoryTabs() {
+            const container = document.getElementById('categoryTabs');
+            let html = `<button onclick="filterCategory('all')" class="drug-cat-btn px-3 py-1 text-xs rounded-full ${currentCategory === 'all' ? 'bg-[rgb(var(--primary-rgb))] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}" data-cat="all">全部</button>`;
+            
+            categories.forEach(cat => {
+                const active = currentCategory === cat;
+                html += `<button onclick="filterCategory('${cat}')" class="drug-cat-btn px-3 py-1 text-xs rounded-full ${active ? 'bg-[rgb(var(--primary-rgb))] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}" data-cat="${cat}">${cat}</button>`;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // ========== 药品列表渲染（开方界面） ==========
+        function renderDrugList(searchText = '') {
+            const container = document.getElementById('drugList');
+            let filtered = drugDatabase;
+            
+            if (currentCategory !== 'all') {
+                filtered = filtered.filter(d => d.cat === currentCategory);
+            }
+            
+            if (searchText) {
+                const search = searchText.toLowerCase();
+                filtered = filtered.filter(d => 
+                    d.name.toLowerCase().includes(search) || 
+                    d.spec.toLowerCase().includes(search)
+                );
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400 py-4 text-sm">未找到匹配药品，可点击右上角"管理"添加</p>';
+                return;
+            }
+            
+            container.innerHTML = filtered.map(drug => `
+                <div class="drug-row p-3 border border-gray-100 rounded-lg cursor-pointer hover:border-[rgb(var(--primary-rgb))] transition" onclick="addDrugToPresc(${drug.id})">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium text-sm text-gray-800">${drug.name}</span>
+                                <span class="badge ${drug.type === 'Rx' ? 'badge-rx' : 'badge-otc'}">${drug.type === 'Rx' ? '处方药' : 'OTC'}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">${drug.spec} · ${drug.cat}</p>
+                            <p class="text-xs text-gray-400 mt-1">${drug.dosage ? drug.dosage.substring(0, 25) + (drug.dosage.length > 25 ? '...' : '') : '遵医嘱'}</p>
+                        </div>
+                        <svg class="w-5 h-5 text-gray-300 shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function searchDrugs() {
+            const text = document.getElementById('drugSearch').value;
+            renderDrugList(text);
+        }
+
+        function filterCategory(cat) {
+            currentCategory = cat;
+            renderCategoryTabs();
+            renderDrugList(document.getElementById('drugSearch').value);
+        }
+
+        // ========== 添加药品到处方 ==========
+        function addDrugToPresc(drugId) {
+            const drug = drugDatabase.find(d => d.id === drugId);
+            if (!drug) return;
+            
+            const exists = prescriptionDrugs.find(d => d.id === drugId);
+            if (exists) {
+                exists.quantity = (exists.quantity || 1) + 1;
+            } else {
+                prescriptionDrugs.push({
+                    ...drug,
+                    quantity: 1,
+                    customDosage: drug.dosage
+                });
+            }
+            
+            renderPrescTable();
+            showToast('已添加 ' + drug.name);
+        }
+
+        function addCustomDrug() {
+            const name = prompt('请输入药品名称：');
+            if (!name) return;
+            const spec = prompt('请输入药品规格（如：0.5g*24粒）：') || '';
+            const dosage = prompt('请输入用法用量：') || '遵医嘱';
+            
+            prescriptionDrugs.push({
+                id: 'custom_' + Date.now(),
+                name: name,
+                spec: spec,
+                type: 'Rx',
+                cat: '自定义',
+                customDosage: dosage,
+                quantity: 1,
+                unit: '盒',
+                isCustom: true
+            });
+            
+            renderPrescTable();
+            showToast('已添加自定义药品');
+        }
+
+        // ========== 处方表格渲染 ==========
+        function renderPrescTable() {
+            const tbody = document.getElementById('drugTableBody');
+            
+            if (prescriptionDrugs.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="5" class="py-8 text-center text-gray-400">请从左侧药品库选择药品，或点击下方"添加药品"</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = prescriptionDrugs.map((drug, index) => `
+                <tr class="drug-row border-b border-gray-200 last:border-b-0">
+                    <td class="py-3 px-3 text-gray-600">${index + 1}</td>
+                    <td class="py-3 px-3">
+                        <div class="font-medium text-gray-800">${drug.name}</div>
+                        <div class="text-xs text-gray-500">${drug.spec}</div>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <input type="number" value="${drug.quantity}" min="1" 
+                            class="w-14 text-center border border-gray-200 rounded py-1 text-sm"
+                            onchange="updateQuantity('${drug.id}', this.value)">
+                        <span class="text-xs text-gray-500 ml-1">${drug.unit || '盒'}</span>
+                    </td>
+                    <td class="py-3 px-3">
+                        <input type="text" value="${drug.customDosage || drug.dosage || '遵医嘱'}" 
+                            class="w-full border border-gray-200 rounded py-1 px-2 text-sm"
+                            onchange="updateDosage('${drug.id}', this.value)">
+                    </td>
+                    <td class="py-3 px-3 text-center no-print">
+                        <button onclick="removeDrug('${drug.id}')" class="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateQuantity(drugId, value) {
+            const drug = prescriptionDrugs.find(d => d.id == drugId);
+            if (drug) drug.quantity = parseInt(value) || 1;
+        }
+
+        function updateDosage(drugId, value) {
+            const drug = prescriptionDrugs.find(d => d.id == drugId);
+            if (drug) drug.customDosage = value;
+        }
+
+        function removeDrug(drugId) {
+            prescriptionDrugs = prescriptionDrugs.filter(d => d.id != drugId);
+            renderPrescTable();
+            showToast('已移除药品');
+        }
+
+        // ========== 患者信息绑定 ==========
+        function bindPatientEvents() {
+            const fields = ['patientName', 'patientAge', 'patientGender', 'patientPhone', 'diagnosis', 'prescType'];
+            fields.forEach(field => {
+                const el = document.getElementById(field);
+                el.addEventListener('input', updatePatientDisplay);
+                el.addEventListener('change', updatePatientDisplay);
+            });
+        }
+
+        function updatePatientDisplay() {
+            document.getElementById('pNameDisplay').textContent = document.getElementById('patientName').value || '____';
+            document.getElementById('pGenderDisplay').textContent = document.getElementById('patientGender').value || '____';
+            document.getElementById('pAgeDisplay').textContent = document.getElementById('patientAge').value || '__';
+            document.getElementById('pPhoneDisplay').textContent = document.getElementById('patientPhone').value || '____________';
+            document.getElementById('diagDisplay').textContent = document.getElementById('diagnosis').value || '________________';
+            document.getElementById('prescTypeDisplay').textContent = document.getElementById('prescType').value || '普通处方';
+            document.getElementById('doctorSigDisplay').textContent = clinicSettings.doctor || '';
+        }
+
+        // ========== 处方操作 ==========
+        function generatePrescNo() {
+            const today = new Date();
+            const datePart = today.getFullYear() + 
+                           String(today.getMonth()+1).padStart(2,'0') + 
+                           String(today.getDate()).padStart(2,'0');
+            const no = datePart + String(prescCounter).padStart(4,'0');
+            document.getElementById('prescNoDisplay').textContent = no;
+            return no;
+        }
+
+        function newPrescription() {
+            if (prescriptionDrugs.length > 0 || document.getElementById('patientName').value) {
+                if (!confirm('当前处方内容将被清空，是否继续？')) return;
+            }
+            clearAll();
+            prescCounter++;
+            generatePrescNo();
+            generateQRCode();
+            showToast('已创建新处方');
+        }
+
+        function clearAll() {
+            document.getElementById('patientName').value = '';
+            document.getElementById('patientAge').value = '';
+            document.getElementById('patientGender').value = '';
+            document.getElementById('patientPhone').value = '';
+            document.getElementById('diagnosis').value = '';
+            document.getElementById('doctorAdvice').value = '';
+            prescriptionDrugs = [];
+            renderPrescTable();
+            updatePatientDisplay();
+            
+            const today = new Date();
+            const dateStr = today.getFullYear() + '-' + 
+                           String(today.getMonth()+1).padStart(2,'0') + '-' + 
+                           String(today.getDate()).padStart(2,'0');
+            document.getElementById('prescDate').value = dateStr;
+            document.getElementById('dateDisplay').textContent = dateStr;
+        }
+
+        function savePrescription() {
+            const name = document.getElementById('patientName').value;
+            const diag = document.getElementById('diagnosis').value;
+            
+            if (!name) { showToast('请填写患者姓名'); return; }
+            if (!diag) { showToast('请填写临床诊断'); return; }
+            if (prescriptionDrugs.length === 0) { showToast('请至少添加一种药品'); return; }
+            
+            const prescData = {
+                no: document.getElementById('prescNoDisplay').textContent,
+                date: document.getElementById('prescDate').value,
+                patient: {
+                    name: name,
+                    age: document.getElementById('patientAge').value,
+                    gender: document.getElementById('patientGender').value,
+                    phone: document.getElementById('patientPhone').value
+                },
+                diagnosis: diag,
+                type: document.getElementById('prescType').value,
+                drugs: [...prescriptionDrugs],
+                advice: document.getElementById('doctorAdvice').value,
+                doctor: clinicSettings.doctor,
+                savedAt: new Date().toLocaleString()
+            };
+            
+            let history = JSON.parse(localStorage.getItem('prescHistory') || '[]');
+            history.unshift(prescData);
+            if (history.length > 50) history = history.slice(0, 50);
+            localStorage.setItem('prescHistory', JSON.stringify(history));
+            
+            showToast('处方已保存');
+        }
+
+        // ========== 历史处方 ==========
+        function showHistory() {
+            const modal = document.getElementById('historyModal');
+            const list = document.getElementById('historyList');
+            const history = JSON.parse(localStorage.getItem('prescHistory') || '[]');
+            
+            if (history.length === 0) {
+                list.innerHTML = '<p class="text-center text-gray-400 py-8">暂无保存的处方记录</p>';
+            } else {
+                list.innerHTML = history.map((p, i) => `
+                    <div class="border border-gray-200 rounded-lg p-4 mb-3 hover:shadow-md transition cursor-pointer" onclick="loadHistoryPresc(${i})">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <span class="font-medium">${p.patient.name}</span>
+                                <span class="text-gray-500 text-sm ml-2">${p.patient.gender} ${p.patient.age}岁</span>
+                            </div>
+                            <span class="text-xs text-gray-400">${p.savedAt}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-1">诊断：${p.diagnosis}</p>
+                        <p class="text-xs text-gray-400">处方号：${p.no} | 药品${p.drugs.length}种</p>
+                    </div>
+                `).join('');
+            }
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function loadHistoryPresc(index) {
+            const history = JSON.parse(localStorage.getItem('prescHistory') || '[]');
+            const p = history[index];
+            if (!p) return;
+            
+            document.getElementById('patientName').value = p.patient.name;
+            document.getElementById('patientAge').value = p.patient.age;
+            document.getElementById('patientGender').value = p.patient.gender;
+            document.getElementById('patientPhone').value = p.patient.phone;
+            document.getElementById('diagnosis').value = p.diagnosis;
+            document.getElementById('prescType').value = p.type;
+            document.getElementById('prescDate').value = p.date;
+            document.getElementById('dateDisplay').textContent = p.date;
+            document.getElementById('doctorAdvice').value = p.advice || '';
+            document.getElementById('prescNoDisplay').textContent = p.no;
+            
+            prescriptionDrugs = [...p.drugs];
+            renderPrescTable();
+            updatePatientDisplay();
+            
+            closeModal('historyModal');
+            showToast('已加载处方：' + p.patient.name);
+        }
+
+        // ========== 诊所设置 ==========
+        function showClinicSettings() {
+            document.getElementById('settingClinicName').value = clinicSettings.name;
+            document.getElementById('settingClinicAddr').value = clinicSettings.addr;
+            document.getElementById('settingClinicPhone').value = clinicSettings.phone;
+            document.getElementById('settingDoctorName').value = clinicSettings.doctor;
+            
+            const modal = document.getElementById('settingsModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function saveClinicSettings() {
+            clinicSettings.name = document.getElementById('settingClinicName').value || clinicSettings.name;
+            clinicSettings.addr = document.getElementById('settingClinicAddr').value || clinicSettings.addr;
+            clinicSettings.phone = document.getElementById('settingClinicPhone').value || clinicSettings.phone;
+            clinicSettings.doctor = document.getElementById('settingDoctorName').value || clinicSettings.doctor;
+            
+            localStorage.setItem('clinicSettings', JSON.stringify(clinicSettings));
+            updateClinicDisplay();
+            updatePatientDisplay();
+            closeModal('settingsModal');
+            showToast('诊所信息已保存');
+        }
+
+        function loadClinicSettings() {
+            const saved = localStorage.getItem('clinicSettings');
+            if (saved) clinicSettings = { ...clinicSettings, ...JSON.parse(saved) };
+            updateClinicDisplay();
+            updatePatientDisplay();
+        }
+
+        function updateClinicDisplay() {
+            document.getElementById('clinicNameDisplay').textContent = clinicSettings.name;
+            document.getElementById('clinicAddrDisplay').textContent = '地址：' + clinicSettings.addr + ' | 电话：' + clinicSettings.phone;
+        }
+
+        // ========== 药品库管理 ==========
+        function showDrugManage() {
+            switchManageTab('drugs');
+            updateCategorySelects();
+            renderManageDrugList();
+            renderManageCategoryList();
+            
+            const modal = document.getElementById('drugManageModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function switchManageTab(tab) {
+            document.querySelectorAll('.manage-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+            document.getElementById('drugsPanel').classList.toggle('hidden', tab !== 'drugs');
+            document.getElementById('categoriesPanel').classList.toggle('hidden', tab !== 'categories');
+        }
+
+        function updateCategorySelects() {
+            // 药品表单分类选择
+            const formSelect = document.getElementById('formDrugCat');
+            formSelect.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            
+            // 管理面板筛选
+            const filterSelect = document.getElementById('manageCategoryFilter');
+            filterSelect.innerHTML = '<option value="all">全部分类</option>' + 
+                categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        // ----- 药品管理 -----
+        function renderManageDrugList() {
+            const container = document.getElementById('manageDrugList');
+            const search = (document.getElementById('manageDrugSearch').value || '').toLowerCase();
+            const catFilter = document.getElementById('manageCategoryFilter').value;
+            
+            let filtered = drugDatabase;
+            if (catFilter !== 'all') {
+                filtered = filtered.filter(d => d.cat === catFilter);
+            }
+            if (search) {
+                filtered = filtered.filter(d => 
+                    d.name.toLowerCase().includes(search) || 
+                    (d.spec || '').toLowerCase().includes(search)
+                );
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400 py-8 text-sm">暂无药品，点击"添加药品"开始</p>';
+                return;
+            }
+            
+            container.innerHTML = filtered.map(drug => `
+                <div class="drug-manage-item">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-medium text-sm text-gray-800">${drug.name}</span>
+                            <span class="badge ${drug.type === 'Rx' ? 'badge-rx' : 'badge-otc'}">${drug.type === 'Rx' ? '处方药' : 'OTC'}</span>
+                            <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">${drug.cat}</span>
+                        </div>
+                        <p class="text-xs text-gray-500">${drug.spec || '无规格'} · ${drug.dosage ? drug.dosage.substring(0, 40) + (drug.dosage.length > 40 ? '...' : '') : '无用法'}</p>
+                    </div>
+                    <div class="flex items-center gap-1 ml-3 shrink-0">
+                        <button onclick="editDrug(${drug.id})" class="icon-btn text-gray-400 hover:text-[rgb(var(--primary-rgb))]" title="编辑">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                        </button>
+                        <button onclick="deleteDrug(${drug.id})" class="icon-btn text-gray-400 hover:text-red-500" title="删除">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showAddDrugForm() {
+            document.getElementById('drugFormTitle').textContent = '添加新药品';
+            document.getElementById('editDrugId').value = '';
+            document.getElementById('formDrugName').value = '';
+            document.getElementById('formDrugSpec').value = '';
+            document.getElementById('formDrugCat').value = categories[0] || '';
+            document.getElementById('formDrugType').value = 'Rx';
+            document.getElementById('formDrugUnit').value = '盒';
+            document.getElementById('formDrugDosage').value = '';
+            document.getElementById('drugForm').classList.remove('hidden');
+            document.getElementById('formDrugName').focus();
+        }
+
+        function editDrug(id) {
+            const drug = drugDatabase.find(d => d.id === id);
+            if (!drug) return;
+            
+            document.getElementById('drugFormTitle').textContent = '编辑药品';
+            document.getElementById('editDrugId').value = id;
+            document.getElementById('formDrugName').value = drug.name;
+            document.getElementById('formDrugSpec').value = drug.spec || '';
+            document.getElementById('formDrugCat').value = drug.cat;
+            document.getElementById('formDrugType').value = drug.type;
+            document.getElementById('formDrugUnit').value = drug.unit || '盒';
+            document.getElementById('formDrugDosage').value = drug.dosage || '';
+            document.getElementById('drugForm').classList.remove('hidden');
+            document.getElementById('formDrugName').focus();
+        }
+
+        function hideDrugForm() {
+            document.getElementById('drugForm').classList.add('hidden');
+        }
+
+        function saveDrug() {
+            const editId = document.getElementById('editDrugId').value;
+            const name = document.getElementById('formDrugName').value.trim();
+            const spec = document.getElementById('formDrugSpec').value.trim();
+            const cat = document.getElementById('formDrugCat').value;
+            const type = document.getElementById('formDrugType').value;
+            const unit = document.getElementById('formDrugUnit').value;
+            const dosage = document.getElementById('formDrugDosage').value.trim();
+            
+            if (!name) { showToast('请输入药品名称'); return; }
+            if (!cat) { showToast('请选择分类'); return; }
+            
+            if (editId) {
+                // 编辑
+                const drug = drugDatabase.find(d => d.id == editId);
+                if (drug) {
+                    drug.name = name;
+                    drug.spec = spec;
+                    drug.cat = cat;
+                    drug.type = type;
+                    drug.unit = unit;
+                    drug.dosage = dosage;
+                }
+                showToast('药品已更新');
+            } else {
+                // 新增
+                drugDatabase.push({
+                    id: nextDrugId++,
+                    name: name,
+                    spec: spec,
+                    cat: cat,
+                    type: type,
+                    unit: unit,
+                    dosage: dosage
+                });
+                showToast('药品已添加');
+            }
+            
+            saveDrugLibrary();
+            hideDrugForm();
+            renderManageDrugList();
+            renderDrugList(document.getElementById('drugSearch').value);
+        }
+
+        function deleteDrug(id) {
+            const drug = drugDatabase.find(d => d.id === id);
+            if (!drug) return;
+            if (!confirm(`确定要删除药品"${drug.name}"吗？`)) return;
+            
+            drugDatabase = drugDatabase.filter(d => d.id !== id);
+            saveDrugLibrary();
+            renderManageDrugList();
+            renderDrugList(document.getElementById('drugSearch').value);
+            
+            // 如果处方中有该药也移除
+            prescriptionDrugs = prescriptionDrugs.filter(d => d.id !== id);
+            renderPrescTable();
+            
+            showToast('药品已删除');
+        }
+
+        // ----- 分类管理 -----
+        function renderManageCategoryList() {
+            const container = document.getElementById('categoryList');
+            const drugCounts = {};
+            categories.forEach(c => drugCounts[c] = drugDatabase.filter(d => d.cat === c).length);
+            
+            container.innerHTML = categories.map(cat => `
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-[rgb(var(--primary-rgb))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-800">${cat}</span>
+                            <span class="text-xs text-gray-400 ml-2">${drugCounts[cat] || 0}种药品</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="renameCategory('${cat}')" class="px-3 py-1 text-xs text-gray-500 hover:text-[rgb(var(--primary-rgb))] hover:bg-blue-50 rounded transition">
+                            重命名
+                        </button>
+                        <button onclick="deleteCategory('${cat}')" class="px-3 py-1 text-xs text-gray-500 hover:text-red-500 hover:bg-red-50 rounded transition ${categories.length <= 1 ? 'opacity-30 cursor-not-allowed' : ''}">
+                            删除
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addCategory() {
+            const input = document.getElementById('newCategoryName');
+            const name = input.value.trim();
+            
+            if (!name) { showToast('请输入分类名称'); return; }
+            if (categories.includes(name)) { showToast('该分类已存在'); return; }
+            
+            categories.push(name);
+            saveDrugLibrary();
+            input.value = '';
+            
+            renderManageCategoryList();
+            renderCategoryTabs();
+            updateCategorySelects();
+            renderDrugList(document.getElementById('drugSearch').value);
+            showToast('分类已添加');
+        }
+
+        function renameCategory(oldName) {
+            const newName = prompt('请输入新的分类名称：', oldName);
+            if (!newName || newName.trim() === oldName) return;
+            const trimmed = newName.trim();
+            
+            if (categories.includes(trimmed)) {
+                showToast('该分类名称已存在');
+                return;
+            }
+            
+            // 更新分类名
+            const idx = categories.indexOf(oldName);
+            if (idx !== -1) categories[idx] = trimmed;
+            
+            // 更新所有该分类下药品的分类字段
+            drugDatabase.forEach(d => {
+                if (d.cat === oldName) d.cat = trimmed;
+            });
+            
+            saveDrugLibrary();
+            renderManageCategoryList();
+            renderCategoryTabs();
+            updateCategorySelects();
+            renderDrugList(document.getElementById('drugSearch').value);
+            renderManageDrugList();
+            
+            // 如果当前选中的是该分类，更新选中状态
+            if (currentCategory === oldName) currentCategory = trimmed;
+            renderCategoryTabs();
+            
+            showToast('分类已重命名');
+        }
+
+        function deleteCategory(catName) {
+            if (categories.length <= 1) {
+                showToast('至少保留一个分类');
+                return;
+            }
+            
+            const drugCount = drugDatabase.filter(d => d.cat === catName).length;
+            const targetCat = categories.find(c => c !== catName);
+            const msg = drugCount > 0 
+                ? `确定要删除分类"${catName}"吗？该分类下的${drugCount}种药品将移至"${targetCat}"分类。`
+                : `确定要删除分类"${catName}"吗？`;
+                
+            if (!confirm(msg)) return;
+            
+            // 将该分类下药品移至第一个其他分类
+            drugDatabase.forEach(d => {
+                if (d.cat === catName) d.cat = targetCat;
+            });
+            
+            categories = categories.filter(c => c !== catName);
+            saveDrugLibrary();
+            
+            if (currentCategory === catName) currentCategory = 'all';
+            
+            renderManageCategoryList();
+            renderCategoryTabs();
+            updateCategorySelects();
+            renderDrugList(document.getElementById('drugSearch').value);
+            renderManageDrugList();
+            showToast('分类已删除');
+        }
+
+        // ========== 通用工具 ==========
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 2000);
+        }
+
+        function generateQRCode() {
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+            if (typeof QRCode !== 'undefined') {
+                const prescNo = document.getElementById('prescNoDisplay').textContent;
+                new QRCode(qrContainer, {
+                    text: prescNo,
+                    width: 64,
+                    height: 64,
+                    colorDark: '#1a63ba',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+            }
+        }
+
+        // 点击模态框背景关闭
+        ['historyModal', 'settingsModal', 'drugManageModal'].forEach(modalId => {
+            document.getElementById(modalId).addEventListener('click', function(e) {
+                if (e.target === this) closeModal(modalId);
+            });
+        });
+
+        // 回车添加分类
+        document.getElementById('newCategoryName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addCategory();
+        });
+    </script>
+</body>
+</html>
