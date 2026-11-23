@@ -294,6 +294,12 @@
                     </svg>
                     诊所设置
                 </button>
+                <button onclick="showBackupModal()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                    </svg>
+                    数据备份
+                </button>
             </div>
         </div>
     </header>
@@ -622,6 +628,98 @@
                 <div class="flex justify-end gap-2 pt-2">
                     <button onclick="closeModal('settingsModal')" class="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">取消</button>
                     <button onclick="saveClinicSettings()" class="btn-primary px-4 py-2 text-sm text-white rounded-lg">保存设置</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据备份与恢复模态框 -->
+    <div id="backupModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-xl w-full max-w-lg modal-content">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h3 class="text-lg font-bold">数据备份与恢复</h3>
+                <button onclick="closeModal('backupModal')" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-5 space-y-5">
+                <!-- 当前数据统计 -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-[rgb(var(--primary-rgb))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        当前数据概况
+                    </h4>
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">患者档案：</span>
+                            <strong class="text-[rgb(var(--primary-rgb))]" id="backupPatientCount">0</strong>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">处方记录：</span>
+                            <strong class="text-[rgb(var(--primary-rgb))]" id="backupPrescCount">0</strong>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">药品数量：</span>
+                            <strong class="text-[rgb(var(--primary-rgb))]" id="backupDrugCount">0</strong>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">药品分类：</span>
+                            <strong class="text-[rgb(var(--primary-rgb))]" id="backupCategoryCount">0</strong>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">备份文件包含：诊所设置、药品分类、药品库、患者档案、全部历史处方</p>
+                </div>
+
+                <!-- 备份导出 -->
+                <div>
+                    <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-[rgb(var(--secondary-rgb))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        导出备份
+                    </h4>
+                    <p class="text-xs text-gray-500 mb-3">将全部数据导出为JSON备份文件，建议定期备份保存到U盘或其他电脑，防止数据丢失。</p>
+                    <button onclick="exportBackup()" class="w-full btn-success px-4 py-2.5 text-sm text-white rounded-lg flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                        </svg>
+                        下载备份文件
+                    </button>
+                </div>
+
+                <!-- 恢复导入 -->
+                <div>
+                    <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                        </svg>
+                        恢复数据
+                    </h4>
+                    <p class="text-xs text-gray-500 mb-3">从之前导出的备份文件恢复数据，<strong class="text-red-500">恢复后将覆盖当前所有数据</strong>，请谨慎操作。</p>
+                    <label class="w-full border-2 border-dashed border-gray-300 hover:border-orange-400 rounded-lg px-4 py-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition" id="dropZone">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        <span class="text-sm text-gray-600" id="fileSelectText">点击选择备份文件，或拖拽到此处</span>
+                        <input type="file" id="backupFileInput" accept=".json" class="hidden" onchange="handleBackupFile(this)">
+                    </label>
+                </div>
+
+                <!-- 清空数据 -->
+                <div class="pt-3 border-t border-gray-200">
+                    <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        危险操作
+                    </h4>
+                    <button onclick="clearAllData()" class="w-full px-4 py-2.5 text-sm text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition">
+                        清空全部系统数据（重置系统）
+                    </button>
                 </div>
             </div>
         </div>
@@ -2088,11 +2186,191 @@
         }
 
         // 点击模态框背景关闭
-        ['historyModal', 'settingsModal', 'drugManageModal', 'patientManageModal'].forEach(modalId => {
+        ['historyModal', 'settingsModal', 'drugManageModal', 'patientManageModal', 'backupModal'].forEach(modalId => {
             document.getElementById(modalId).addEventListener('click', function(e) {
                 if (e.target === this) closeModal(modalId);
             });
         });
+
+        // ========== 数据备份与恢复 ==========
+        function showBackupModal() {
+            // 更新统计数据
+            const patients = JSON.parse(localStorage.getItem('patients') || '[]');
+            const history = JSON.parse(localStorage.getItem('prescHistory') || '[]');
+            const drugs = JSON.parse(localStorage.getItem('drugLibrary') || '[]');
+            const categories = JSON.parse(localStorage.getItem('drugCategories') || '[]');
+            
+            document.getElementById('backupPatientCount').textContent = patients.length;
+            document.getElementById('backupPrescCount').textContent = history.length;
+            document.getElementById('backupDrugCount').textContent = drugs.length;
+            document.getElementById('backupCategoryCount').textContent = categories.length;
+            
+            // 重置文件选择
+            document.getElementById('backupFileInput').value = '';
+            document.getElementById('fileSelectText').textContent = '点击选择备份文件，或拖拽到此处';
+            
+            document.getElementById('backupModal').classList.remove('hidden');
+            document.getElementById('backupModal').classList.add('flex');
+        }
+
+        function exportBackup() {
+            // 收集所有数据
+            const backupData = {
+                version: '1.0',
+                exportTime: new Date().toLocaleString('zh-CN'),
+                data: {
+                    clinicSettings: {
+                        name: localStorage.getItem('clinicName') || '康民社区卫生服务站',
+                        address: localStorage.getItem('clinicAddress') || '地址：XX市XX区XX路XX号 | 电话：0XX-XXXXXXXX',
+                        phone: localStorage.getItem('clinicPhone') || '',
+                        doctorName: localStorage.getItem('doctorName') || '张医师'
+                    },
+                    drugCategories: JSON.parse(localStorage.getItem('drugCategories') || '[]'),
+                    drugLibrary: JSON.parse(localStorage.getItem('drugLibrary') || '[]'),
+                    patients: JSON.parse(localStorage.getItem('patients') || '[]'),
+                    prescHistory: JSON.parse(localStorage.getItem('prescHistory') || '[]')
+                }
+            };
+
+            // 生成文件名
+            const now = new Date();
+            const dateStr = now.getFullYear() + '' + 
+                String(now.getMonth()+1).padStart(2,'0') + 
+                String(now.getDate()).padStart(2,'0') + '_' +
+                String(now.getHours()).padStart(2,'0') + 
+                String(now.getMinutes()).padStart(2,'0');
+            const clinicName = (backupData.data.clinicSettings.name || '诊所').replace(/[\/\\:*?"<>|]/g, '');
+            const filename = `电子处方备份_${clinicName}_${dateStr}.json`;
+
+            // 创建并下载文件
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('备份文件已开始下载，请妥善保存');
+        }
+
+        function handleBackupFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            if (!file.name.endsWith('.json')) {
+                showToast('请选择.json格式的备份文件');
+                input.value = '';
+                return;
+            }
+
+            document.getElementById('fileSelectText').textContent = `已选择：${file.name}，正在验证...`;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const backupData = JSON.parse(e.target.result);
+                    
+                    // 验证备份文件格式
+                    if (!backupData.version || !backupData.data) {
+                        throw new Error('无效的备份文件格式');
+                    }
+
+                    // 统计备份数据量
+                    const data = backupData.data;
+                    const patientCount = (data.patients || []).length;
+                    const prescCount = (data.prescHistory || []).length;
+                    const drugCount = (data.drugLibrary || []).length;
+                    const catCount = (data.drugCategories || []).length;
+
+                    // 确认恢复
+                    if (confirm(`确定要恢复此备份吗？\n\n备份时间：${backupData.exportTime}\n备份内容：${patientCount}位患者、${prescCount}张处方、${drugCount}种药品、${catCount}个分类\n\n恢复后将覆盖当前所有数据，此操作不可撤销！`)) {
+                        // 恢复数据
+                        if (data.clinicSettings) {
+                            localStorage.setItem('clinicName', data.clinicSettings.name || '');
+                            localStorage.setItem('clinicAddress', data.clinicSettings.address || '');
+                            localStorage.setItem('clinicPhone', data.clinicSettings.phone || '');
+                            localStorage.setItem('doctorName', data.clinicSettings.doctorName || '');
+                        }
+                        if (data.drugCategories) {
+                            localStorage.setItem('drugCategories', JSON.stringify(data.drugCategories));
+                        }
+                        if (data.drugLibrary) {
+                            localStorage.setItem('drugLibrary', JSON.stringify(data.drugLibrary));
+                        }
+                        if (data.patients) {
+                            localStorage.setItem('patients', JSON.stringify(data.patients));
+                        }
+                        if (data.prescHistory) {
+                            localStorage.setItem('prescHistory', JSON.stringify(data.prescHistory));
+                        }
+
+                        showToast('数据恢复成功，页面即将刷新...');
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        input.value = '';
+                        document.getElementById('fileSelectText').textContent = '点击选择备份文件，或拖拽到此处';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('备份文件解析失败，请确认文件正确');
+                    input.value = '';
+                    document.getElementById('fileSelectText').textContent = '文件无效，请重新选择';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearAllData() {
+            if (!confirm('⚠️ 警告：此操作将永久删除所有数据！\n\n包括：患者档案、历史处方、自定义药品库和分类、诊所设置。\n\n删除后无法恢复，建议先导出备份再操作。\n\n确定要清空全部数据并重置系统吗？')) {
+                return;
+            }
+            
+            if (!confirm('⚠️ 再次确认：真的要删除所有数据吗？此操作不可撤销！')) {
+                return;
+            }
+
+            // 清空所有localStorage数据
+            localStorage.removeItem('clinicName');
+            localStorage.removeItem('clinicAddress');
+            localStorage.removeItem('clinicPhone');
+            localStorage.removeItem('doctorName');
+            localStorage.removeItem('drugCategories');
+            localStorage.removeItem('drugLibrary');
+            localStorage.removeItem('patients');
+            localStorage.removeItem('prescHistory');
+
+            showToast('数据已清空，页面即将刷新...');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        }
+
+        // 拖拽上传支持
+        const dropZone = document.getElementById('dropZone');
+        if (dropZone) {
+            dropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('border-orange-400', 'bg-orange-50');
+            });
+            dropZone.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.classList.remove('border-orange-400', 'bg-orange-50');
+            });
+            dropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('border-orange-400', 'bg-orange-50');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    document.getElementById('backupFileInput').files = files;
+                    handleBackupFile(document.getElementById('backupFileInput'));
+                }
+            });
+        }
 
         // 回车添加分类
         document.getElementById('newCategoryName').addEventListener('keypress', function(e) {
